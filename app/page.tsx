@@ -25,11 +25,11 @@ export default function HomePage() {
             </a>
           </nav>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" className="hover:text-taxi-yellow">
-              Sign In
+            <Button variant="ghost" className="hover:text-taxi-yellow" asChild>
+              <a href="/login">Sign In</a>
             </Button>
-            <Button className="bg-taxi-yellow hover:bg-taxi-yellow/90 text-black font-semibold">
-              Get Started
+            <Button className="bg-taxi-yellow hover:bg-taxi-yellow/90 text-black font-semibold" asChild>
+              <a href="/signup">Get Started</a>
             </Button>
           </div>
         </div>
@@ -54,9 +54,11 @@ export default function HomePage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-taxi-yellow hover:bg-taxi-yellow/90 text-black font-semibold text-lg px-8">
-              Book a Ride Now
-              <Car className="ml-2 h-5 w-5" />
+            <Button size="lg" className="bg-taxi-yellow hover:bg-taxi-yellow/90 text-black font-semibold text-lg px-8" asChild>
+              <a href="/signup">
+                Book a Ride Now
+                <Car className="ml-2 h-5 w-5" />
+              </a>
             </Button>
             <Button size="lg" variant="outline" className="border-2 hover:border-taxi-yellow hover:text-taxi-yellow">
               Learn More
@@ -107,8 +109,8 @@ export default function HomePage() {
           <p className="text-lg text-slate-300 mb-8 max-w-2xl mx-auto">
             Join thousands of satisfied riders. Download the app or sign up online today.
           </p>
-          <Button size="lg" className="bg-taxi-yellow hover:bg-taxi-yellow/90 text-black font-semibold text-lg px-8">
-            Create Your Account
+          <Button size="lg" className="bg-taxi-yellow hover:bg-taxi-yellow/90 text-black font-semibold text-lg px-8" asChild>
+            <a href="/signup">Create Your Account</a>
           </Button>
         </div>
       </section>
