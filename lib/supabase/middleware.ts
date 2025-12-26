@@ -54,7 +54,23 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const path = request.nextUrl.pathname
+
+  // Public routes that don't require authentication
+  const publicRoutes = ['/', '/signin', '/signup', '/reset-password']
+  const isPublicRoute = publicRoutes.includes(path)
+
+  // Redirect authenticated users away from auth pages
+  if (user && (path === '/signin' || path === '/signup')) {
+    return NextResponse.redirect(new URL('/feed', request.url))
+  }
+
+  // Redirect unauthenticated users to signin for protected routes
+  if (!user && !isPublicRoute && !path.startsWith('/_next') && !path.startsWith('/api')) {
+    return NextResponse.redirect(new URL('/signin', request.url))
+  }
 
   return response
 }
