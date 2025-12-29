@@ -1,9 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
 const supabase = createClient(
@@ -15,100 +13,162 @@ export default function SignInPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+  const [error, setError] = useState('')
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setError(null)
+    setError('')
 
-    try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-      if (signInError) {
-        setError(signInError.message)
-        setLoading(false)
-        return
-      }
-
-      if (data.user) {
-        router.push('/feed')
-        router.refresh()
-      }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.')
+    if (signInError) {
+      setError(signInError.message)
       setLoading(false)
+      return
+    }
+
+    if (data.user) {
+      window.location.href = '/feed'
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-2xl font-bold text-center mb-6">Welcome Back</h1>
-          
-          <form onSubmit={handleSignIn} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                placeholder="you@example.com"
-              />
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      backgroundColor: '#f3f4f6',
+      padding: '20px'
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        padding: '40px',
+        borderRadius: '12px',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        width: '100%',
+        maxWidth: '400px'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 8px 0' }}>
+            🚕 UK Driver Hub
+          </h1>
+          <p style={{ color: '#666', margin: 0 }}>Sign in to your account</p>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '6px', 
+              fontWeight: '500',
+              fontSize: '14px'
+            }}>
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '6px', 
+              fontWeight: '500',
+              fontSize: '14px'
+            }}>
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="Enter your password"
+            />
+          </div>
+
+          {error && (
+            <div style={{
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#dc2626',
+              padding: '12px',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              fontSize: '14px'
+            }}>
+              {error}
             </div>
+          )}
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                placeholder="Enter your password"
-              />
-            </div>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: '100%',
+              padding: '14px',
+              backgroundColor: loading ? '#9ca3af' : '#eab308',
+              color: 'black',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              marginBottom: '16px'
+            }}
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
-                {error}
-              </div>
-            )}
+        <div style={{ textAlign: 'center' }}>
+          <Link 
+            href="/reset-password" 
+            style={{ 
+              color: '#eab308', 
+              textDecoration: 'none',
+              fontSize: '14px'
+            }}
+          >
+            Forgot password?
+          </Link>
+        </div>
 
-            <div className="flex items-center justify-end">
-              <Link 
-                href="/reset-password" 
-                className="text-sm text-yellow-600 hover:text-yellow-700 font-medium"
-              >
-                Forgot password?
-              </Link>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
-
-          <p className="text-center text-sm text-gray-600 mt-4">
+        <div style={{ 
+          textAlign: 'center', 
+          marginTop: '24px',
+          paddingTop: '24px',
+          borderTop: '1px solid #e5e7eb'
+        }}>
+          <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>
             Don't have an account?{' '}
-            <Link href="/signup" className="text-yellow-600 hover:text-yellow-700 font-medium">
+            <Link href="/signup" style={{ color: '#eab308', fontWeight: '600', textDecoration: 'none' }}>
               Sign up
             </Link>
           </p>
