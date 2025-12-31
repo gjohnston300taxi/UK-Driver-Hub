@@ -121,6 +121,7 @@ export default function FeedPage() {
   const [comments, setComments] = useState<{ [postId: string]: Comment[] }>({})
   const [loading, setLoading] = useState(true)
   const [regionFilter, setRegionFilter] = useState<'all' | 'my-region'>('all')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
   // Post composer state
   const [newPostContent, setNewPostContent] = useState('')
@@ -492,7 +493,7 @@ export default function FeedPage() {
       <header style={{
         backgroundColor: 'white',
         borderBottom: '1px solid #e5e7eb',
-        padding: '16px 24px',
+        padding: '12px 16px',
         position: 'sticky',
         top: 0,
         zIndex: 100
@@ -504,63 +505,189 @@ export default function FeedPage() {
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>
-              🚕 Driver Feed
-            </h1>
-            <nav style={{ display: 'flex', gap: '16px' }}>
-              <a href="/feed" style={{ color: '#eab308', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>
-                Feed
-              </a>
-              <a href="/news" style={{ color: '#666', textDecoration: 'none', fontSize: '14px' }}>
-                News
-              </a>
-            </nav>
-          </div>
+          {/* Left side - Title + Hamburger */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <a
-              href="/profile"
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                backgroundColor: '#eab308',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textDecoration: 'none',
-                color: 'black',
-                fontWeight: 'bold',
-                fontSize: '18px'
-              }}
-              title={profile?.name}
-            >
-              {profile?.name?.charAt(0).toUpperCase() || '?'}
-            </a>
+            <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>
+              🚕 Driver Hub
+            </h1>
             <button
-              onClick={handleSignOut}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               style={{
-                padding: '8px 16px',
+                padding: '8px',
                 backgroundColor: 'transparent',
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                fontSize: '14px'
+                fontSize: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              Sign Out
+              {mobileMenuOpen ? '✕' : '☰'}
             </button>
           </div>
+          
+          {/* Right side - Profile only */}
+          <a
+            href="/profile"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              backgroundColor: '#eab308',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textDecoration: 'none',
+              color: 'black',
+              fontWeight: 'bold',
+              fontSize: '16px'
+            }}
+            title={profile?.name}
+          >
+            {profile?.name?.charAt(0).toUpperCase() || '?'}
+          </a>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        {mobileMenuOpen && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            backgroundColor: 'white',
+            borderBottom: '1px solid #e5e7eb',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            zIndex: 99
+          }}>
+            <nav style={{ 
+              display: 'flex', 
+              flexDirection: 'column',
+              maxWidth: '680px',
+              margin: '0 auto'
+            }}>
+              <a 
+                href="/feed" 
+                style={{ 
+                  padding: '16px', 
+                  color: '#eab308', 
+                  textDecoration: 'none', 
+                  fontSize: '16px', 
+                  fontWeight: '600',
+                  borderBottom: '1px solid #f3f4f6'
+                }}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                📰 Feed
+              </a>
+              <a 
+                href="/news" 
+                style={{ 
+                  padding: '16px', 
+                  color: '#333', 
+                  textDecoration: 'none', 
+                  fontSize: '16px',
+                  borderBottom: '1px solid #f3f4f6'
+                }}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                📢 News
+              </a>
+              <a 
+                href="/marketplace" 
+                style={{ 
+                  padding: '16px', 
+                  color: '#333', 
+                  textDecoration: 'none', 
+                  fontSize: '16px',
+                  borderBottom: '1px solid #f3f4f6'
+                }}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                🏪 Marketplace
+              </a>
+              <a 
+                href="/finance" 
+                style={{ 
+                  padding: '16px', 
+                  color: '#333', 
+                  textDecoration: 'none', 
+                  fontSize: '16px',
+                  borderBottom: '1px solid #f3f4f6'
+                }}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                💰 Finance
+              </a><a 
+                href="/resources" 
+                style={{ 
+                  padding: '16px', 
+                  color: '#333', 
+                  textDecoration: 'none', 
+                  fontSize: '16px',
+                  borderBottom: '1px solid #f3f4f6'
+                }}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                📚 Resources
+              </a>
+              <a 
+                href="/assistant" 
+                style={{ 
+                  padding: '16px', 
+                  color: '#333', 
+                  textDecoration: 'none', 
+                  fontSize: '16px',
+                  borderBottom: '1px solid #f3f4f6'
+                }}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                🤖 Driver AI Assistant
+              </a>
+              <a 
+                href="/profile" 
+                style={{ 
+                  padding: '16px', 
+                  color: '#333', 
+                  textDecoration: 'none', 
+                  fontSize: '16px',
+                  borderBottom: '1px solid #f3f4f6'
+                }}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                👤 Profile
+              </a>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  handleSignOut()
+                }}
+                style={{
+                  padding: '16px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: '#dc2626',
+                  fontSize: '16px',
+                  textAlign: 'left',
+                  cursor: 'pointer'
+                }}
+              >
+                🚪 Sign Out
+              </button>
+            </nav>
+          </div>
+        )}
       </header>
 
-      <main style={{ maxWidth: '680px', margin: '0 auto', padding: '24px 16px' }}>
+      <main style={{ maxWidth: '680px', margin: '0 auto', padding: '16px' }}>
         {/* Region Filter */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '8px',
           padding: '4px',
-          marginBottom: '24px',
+          marginBottom: '16px',
           display: 'flex',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
         }}>
@@ -568,11 +695,12 @@ export default function FeedPage() {
             onClick={() => setRegionFilter('all')}
             style={{
               flex: 1,
-              padding: '12px',
+              padding: '10px 8px',
               border: 'none',
               borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: '600',
+              fontSize: '14px',
               backgroundColor: regionFilter === 'all' ? '#eab308' : 'transparent',
               color: regionFilter === 'all' ? 'black' : '#666'
             }}
@@ -583,16 +711,17 @@ export default function FeedPage() {
             onClick={() => setRegionFilter('my-region')}
             style={{
               flex: 1,
-              padding: '12px',
+              padding: '10px 8px',
               border: 'none',
               borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: '600',
+              fontSize: '14px',
               backgroundColor: regionFilter === 'my-region' ? '#eab308' : 'transparent',
               color: regionFilter === 'my-region' ? 'black' : '#666'
             }}
           >
-            My Region ({profile?.region})
+            {profile?.region || 'My Region'}
           </button>
         </div>
 
@@ -600,8 +729,8 @@ export default function FeedPage() {
         <div style={{
           backgroundColor: 'white',
           borderRadius: '8px',
-          padding: '20px',
-          marginBottom: '24px',
+          padding: '16px',
+          marginBottom: '16px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
         }}>
           <textarea
@@ -614,7 +743,7 @@ export default function FeedPage() {
               padding: '12px',
               border: '1px solid #e5e7eb',
               borderRadius: '6px',
-              minHeight: '100px',
+              minHeight: '80px',
               resize: 'vertical',
               fontSize: '16px',
               boxSizing: 'border-box',
@@ -648,7 +777,7 @@ export default function FeedPage() {
                 alt="Preview" 
                 style={{ 
                   maxWidth: '100%', 
-                  maxHeight: '300px', 
+                  maxHeight: '200px', 
                   borderRadius: '8px',
                   objectFit: 'contain',
                   backgroundColor: '#f3f4f6'
@@ -698,7 +827,7 @@ export default function FeedPage() {
             <div style={{ marginBottom: '12px' }}>
               <iframe
                 width="100%"
-                height="200"
+                height="180"
                 src={`https://www.youtube.com/embed/${getYouTubeId(newPostLink)}`}
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -708,19 +837,20 @@ export default function FeedPage() {
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <input
               type="file"
               ref={fileInputRef}
               onChange={handleImageSelect}
               accept="image/*"
+              capture="environment"
               style={{ display: 'none' }}
             />
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={posting}
               style={{
-                padding: '10px 16px',
+                padding: '10px 14px',
                 backgroundColor: '#f3f4f6',
                 border: '1px solid #e5e7eb',
                 borderRadius: '6px',
@@ -731,20 +861,20 @@ export default function FeedPage() {
                 gap: '6px'
               }}
             >
-              📷 Add Photo
+              📷 Photo
             </button>
             <button
               onClick={handleCreatePost}
               disabled={posting || !newPostContent.trim()}
               style={{
-                padding: '12px 24px',
+                padding: '10px 20px',
                 backgroundColor: posting || !newPostContent.trim() ? '#d1d5db' : '#eab308',
                 color: 'black',
                 border: 'none',
                 borderRadius: '6px',
                 fontWeight: '600',
                 cursor: posting || !newPostContent.trim() ? 'not-allowed' : 'pointer',
-                fontSize: '16px',
+                fontSize: '14px',
                 marginLeft: 'auto'
               }}
             >
@@ -758,7 +888,7 @@ export default function FeedPage() {
           <div style={{
             backgroundColor: 'white',
             borderRadius: '8px',
-            padding: '40px',
+            padding: '40px 20px',
             textAlign: 'center',
             color: '#666',
             boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
@@ -782,8 +912,8 @@ export default function FeedPage() {
                 style={{
                   backgroundColor: 'white',
                   borderRadius: '8px',
-                  padding: '20px',
-                  marginBottom: '16px',
+                  padding: '16px',
+                  marginBottom: '12px',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                 }}
               >
@@ -792,13 +922,14 @@ export default function FeedPage() {
                   marginBottom: '12px',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'flex-start'
+                  alignItems: 'flex-start',
+                  gap: '8px'
                 }}>
-                  <div>
-                    <div style={{ fontWeight: '600', fontSize: '16px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: '600', fontSize: '15px' }}>
                       {post.profiles?.name || 'Unknown Driver'}
                     </div>
-                    <div style={{ fontSize: '14px', color: '#666' }}>
+                    <div style={{ fontSize: '13px', color: '#666' }}>
                       {post.profiles?.region || post.region} • {formatDate(post.created_at)}
                     </div>
                   </div>
@@ -806,17 +937,18 @@ export default function FeedPage() {
                     <button
                       onClick={() => handleDeletePost(post.id)}
                       style={{
-                        padding: '6px 12px',
+                        padding: '4px 8px',
                         backgroundColor: '#fee2e2',
                         color: '#dc2626',
                         border: 'none',
                         borderRadius: '4px',
                         cursor: 'pointer',
                         fontSize: '12px',
-                        fontWeight: '500'
+                        fontWeight: '500',
+                        flexShrink: 0
                       }}
                     >
-                      🗑️ Delete
+                      🗑️
                     </button>
                   )}
                 </div>
@@ -824,8 +956,9 @@ export default function FeedPage() {
                 {/* Post Content */}
                 <p style={{ 
                   margin: '0 0 12px 0', 
-                  lineHeight: '1.6',
-                  whiteSpace: 'pre-wrap'
+                  lineHeight: '1.5',
+                  whiteSpace: 'pre-wrap',
+                  fontSize: '15px'
                 }}>
                   {post.content}
                 </p>
@@ -838,7 +971,7 @@ export default function FeedPage() {
                       alt="Post image"
                       style={{
                         width: '100%',
-                        maxHeight: '500px',
+                        maxHeight: '400px',
                         objectFit: 'contain',
                         borderRadius: '8px',
                         backgroundColor: '#f3f4f6'
@@ -852,7 +985,7 @@ export default function FeedPage() {
                   <div style={{ marginBottom: '12px' }}>
                     <iframe
                       width="100%"
-                      height="315"
+                      height="200"
                       src={`https://www.youtube.com/embed/${youtubeId}`}
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -870,7 +1003,7 @@ export default function FeedPage() {
                     rel="noopener noreferrer"
                     style={{
                       display: 'block',
-                      padding: '12px',
+                      padding: '10px',
                       backgroundColor: '#f9fafb',
                       borderRadius: '8px',
                       marginBottom: '12px',
@@ -880,7 +1013,7 @@ export default function FeedPage() {
                   >
                     <div style={{ 
                       color: '#2563eb', 
-                      fontSize: '14px',
+                      fontSize: '13px',
                       wordBreak: 'break-all'
                     }}>
                       🔗 {post.link_url}
@@ -891,9 +1024,9 @@ export default function FeedPage() {
                 {/* Actions */}
                 <div style={{
                   borderTop: '1px solid #e5e7eb',
-                  paddingTop: '12px',
+                  paddingTop: '10px',
                   display: 'flex',
-                  gap: '8px',
+                  gap: '4px',
                   flexWrap: 'wrap'
                 }}>
                   {/* Like Button */}
@@ -902,8 +1035,8 @@ export default function FeedPage() {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      padding: '8px 12px',
+                      gap: '4px',
+                      padding: '8px 10px',
                       border: 'none',
                       backgroundColor: userLiked ? '#fef3c7' : 'transparent',
                       cursor: 'pointer',
@@ -922,8 +1055,8 @@ export default function FeedPage() {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      padding: '8px 12px',
+                      gap: '4px',
+                      padding: '8px 10px',
                       border: 'none',
                       backgroundColor: userDisliked ? '#fee2e2' : 'transparent',
                       cursor: 'pointer',
@@ -945,8 +1078,8 @@ export default function FeedPage() {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      padding: '8px 12px',
+                      gap: '4px',
+                      padding: '8px 10px',
                       border: 'none',
                       backgroundColor: 'transparent',
                       cursor: 'pointer',
@@ -963,8 +1096,8 @@ export default function FeedPage() {
                 {isExpanded && (
                   <div style={{
                     borderTop: '1px solid #e5e7eb',
-                    paddingTop: '16px',
-                    marginTop: '12px'
+                    paddingTop: '12px',
+                    marginTop: '10px'
                   }}>
                     {postComments.map((comment) => (
                       <div
@@ -972,13 +1105,13 @@ export default function FeedPage() {
                         style={{
                           backgroundColor: '#f9fafb',
                           borderRadius: '6px',
-                          padding: '12px',
+                          padding: '10px',
                           marginBottom: '8px'
                         }}
                       >
                         <div style={{ 
                           fontWeight: '600', 
-                          fontSize: '14px',
+                          fontSize: '13px',
                           marginBottom: '4px'
                         }}>
                           {comment.profiles?.name || 'Anonymous'}
@@ -994,7 +1127,7 @@ export default function FeedPage() {
                       </div>
                     ))}
 
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                       <input
                         type="text"
                         value={newComments[post.id] || ''}
@@ -1008,26 +1141,28 @@ export default function FeedPage() {
                         }}
                         style={{
                           flex: 1,
-                          padding: '10px 12px',
+                          padding: '10px',
                           border: '1px solid #e5e7eb',
                           borderRadius: '6px',
-                          fontSize: '14px'
+                          fontSize: '14px',
+                          minWidth: 0
                         }}
                       />
                       <button
                         onClick={() => handleAddComment(post.id)}
                         style={{
-                          padding: '10px 16px',
+                          padding: '10px 12px',
                           backgroundColor: '#eab308',
                           color: 'black',
                           border: 'none',
                           borderRadius: '6px',
                           fontWeight: '600',
                           cursor: 'pointer',
-                          fontSize: '14px'
+                          fontSize: '14px',
+                          flexShrink: 0
                         }}
                       >
-                        Comment
+                        Send
                       </button>
                     </div>
                   </div>
