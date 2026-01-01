@@ -37,7 +37,7 @@ export default function Header() {
         margin: '0 auto',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        gap: '16px'
       }}>
         {/* Logo */}
         <Link href="/feed" style={{ display: 'flex', alignItems: 'center' }}>
@@ -51,7 +51,7 @@ export default function Header() {
           />
         </Link>
 
-        {/* Hamburger Button */}
+        {/* Hamburger Button - right next to logo */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           style={{
