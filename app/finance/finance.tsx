@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import Link from 'next/link'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -65,7 +64,6 @@ export default function FinancePage() {
   const [dailyData, setDailyData] = useState<DailyData[]>([])
   const [showIncomeModal, setShowIncomeModal] = useState(false)
   const [showExpenseModal, setShowExpenseModal] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [editingEarning, setEditingEarning] = useState<EarningsDaily | null>(null)
   const [editingExpense, setEditingExpense] = useState<ExpenseEntry | null>(null)
   const [incomeDate, setIncomeDate] = useState(new Date().toISOString().split('T')[0])
@@ -241,7 +239,6 @@ export default function FinancePage() {
   }
 
   const openExportModal = () => {
-    // Default to current month
     const now = new Date()
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
     setExportStartDate(firstDay.toISOString().split('T')[0])
@@ -250,14 +247,12 @@ export default function FinancePage() {
   }
 
   const exportCSV = async () => {
-    // Fetch data for the selected date range
     const { data: earningsData } = await supabase.from('earnings_daily').select('*').eq('user_id', user.id).gte('date', exportStartDate).lte('date', exportEndDate).order('date', { ascending: true })
     const { data: expensesData } = await supabase.from('expense_entries').select('*').eq('user_id', user.id).gte('date', exportStartDate).lte('date', exportEndDate).order('date', { ascending: true })
     
     const exportEarnings = earningsData || []
     const exportExpenses = expensesData || []
     
-    // Calculate totals for export
     const expTotalEarnings = exportEarnings.reduce((sum, e) => sum + Number(e.total_fares), 0)
     const expTotalExpenses = exportExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
     const expNetIncome = expTotalEarnings - expTotalExpenses
@@ -266,7 +261,6 @@ export default function FinancePage() {
     let csv = `Taxi Finance Report\nPeriod: ${exportStartDate} to ${exportEndDate}\nGenerated: ${new Date().toLocaleDateString('en-GB')}\n\n`
     csv += 'Date,Type,Category,Description,Cash,Account,Card,App,Total Fares,Expense Amount,Jobs,Notes,Company\n'
     
-    // Combine and sort by date
     const allDates = new Set<string>()
     exportEarnings.forEach(e => allDates.add(e.date))
     exportExpenses.forEach(e => allDates.add(e.date))
@@ -285,7 +279,6 @@ export default function FinancePage() {
     csv += `Net Income,£${expNetIncome.toFixed(2)}\n`
     csv += `Total Jobs,${expTotalJobs}\n`
     
-    // Expense breakdown by category
     csv += `\n--- EXPENSES BY CATEGORY ---\n`
     EXPENSE_CATEGORIES.forEach(cat => {
       const catTotal = exportExpenses.filter(e => e.category === cat.id).reduce((sum, e) => sum + Number(e.amount), 0)
@@ -298,38 +291,10 @@ export default function FinancePage() {
     setShowExportModal(false)
   }
 
-  const handleSignOut = async () => { await supabase.auth.signOut(); window.location.href = '/signin' }
-
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}><p>Loading...</p></div>
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
-      <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '12px 16px', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          {/* Left side - Title + Hamburger */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>🚕 Driver Hub</h1>
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{ padding: '8px', backgroundColor: 'transparent', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{mobileMenuOpen ? '✕' : '☰'}</button>
-          </div>
-          {/* Right side - Profile only */}
-          <Link href="/profile" style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#eab308', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: 'black', fontWeight: 'bold', fontSize: '16px' }}>{profile?.name?.charAt(0).toUpperCase() || '?'}</Link>
-        </div>
-        {mobileMenuOpen && (
-          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 99 }}>
-            <nav style={{ display: 'flex', flexDirection: 'column', maxWidth: '1200px', margin: '0 auto' }}>
-              <a href="/feed" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>📰 Feed</a>
-              <a href="/news" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>📢 News</a>
-              <a href="/marketplace" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>🏪 Marketplace</a>
-              <a href="/finance" style={{ padding: '16px', color: '#eab308', textDecoration: 'none', fontSize: '16px', fontWeight: '600', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>💰 Finance</a>
-              <a href="/resources" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>📚 Resources</a>
-              <a href="/assistant" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>🤖 Driver AI Assistant</a>
-              <a href="/profile" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>👤 Profile</a>
-              <button onClick={() => { setMobileMenuOpen(false); handleSignOut() }} style={{ padding: '16px', backgroundColor: 'transparent', border: 'none', color: '#dc2626', fontSize: '16px', textAlign: 'left', cursor: 'pointer' }}>🚪 Sign Out</button>
-            </nav>
-          </div>
-        )}
-      </header>
-
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -520,7 +485,6 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* Export CSV Modal */}
       {showExportModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '400px' }}>
@@ -545,7 +509,6 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* What to Claim Modal */}
       {showClaimsModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflow: 'auto' }}>
@@ -676,7 +639,6 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* Profit Over £50k Modal */}
       {showHighEarnerModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflow: 'auto' }}>

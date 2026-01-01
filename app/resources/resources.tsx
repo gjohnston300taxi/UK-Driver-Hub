@@ -493,7 +493,6 @@ export default function ResourcesPage() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'cities' | 'companies' | 'faq' | 'guides'>('cities')
   const [selectedRegion, setSelectedRegion] = useState<string>('Scotland 🏴󠁧󠁢󠁳󠁣󠁴󠁿')
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
@@ -525,11 +524,6 @@ export default function ResourcesPage() {
 
     setProfile(profileData)
     setLoading(false)
-  }
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    window.location.href = '/signin'
   }
 
   const renderStars = (rating: number) => {
@@ -570,96 +564,6 @@ export default function ResourcesPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
-      {/* Header */}
-      <header style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '12px 16px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
-      }}>
-        <div style={{
-          maxWidth: '800px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>
-              🚕 Driver Hub
-            </h1>
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              style={{
-                padding: '8px',
-                backgroundColor: 'transparent',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              {mobileMenuOpen ? '✕' : '☰'}
-            </button>
-          </div>
-          
-          <a
-            href="/profile"
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              backgroundColor: '#eab308',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textDecoration: 'none',
-              color: 'black',
-              fontWeight: 'bold',
-              fontSize: '16px'
-            }}
-            title={profile?.name}
-          >
-            {profile?.name?.charAt(0).toUpperCase() || '?'}
-          </a>
-        </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            backgroundColor: 'white',
-            borderBottom: '1px solid #e5e7eb',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            zIndex: 99
-          }}>
-            <nav style={{ 
-              display: 'flex', 
-              flexDirection: 'column',
-              maxWidth: '800px',
-              margin: '0 auto'
-            }}>
-              <a href="/feed" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>📰 Feed</a>
-              <a href="/news" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>📢 News</a>
-              <a href="/marketplace" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>🏪 Marketplace</a>
-              <a href="/finance" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>💰 Finance</a>
-              <a href="/resources" style={{ padding: '16px', color: '#eab308', textDecoration: 'none', fontSize: '16px', fontWeight: '600', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>📚 Resources</a>
-              <a href="/assistant" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>🤖 Driver AI Assistant</a>
-              <a href="/profile" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>👤 Profile</a>
-              <button onClick={() => { setMobileMenuOpen(false); handleSignOut() }} style={{ padding: '16px', backgroundColor: 'transparent', border: 'none', color: '#dc2626', fontSize: '16px', textAlign: 'left', cursor: 'pointer' }}>🚪 Sign Out</button>
-            </nav>
-          </div>
-        )}
-      </header>
-
       <main style={{ maxWidth: '800px', margin: '0 auto', padding: '16px' }}>
         {/* Page Title */}
         <div style={{
