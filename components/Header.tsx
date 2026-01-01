@@ -1,12 +1,36 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default function Header() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [profile, setProfile] = useState<{ name: string } | null>(null)
+
+  useEffect(() => {
+    loadProfile()
+  }, [])
+
+  const loadProfile = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data } = await supabase.from('profiles').select('name').eq('id', user.id).single()
+      if (data) setProfile(data)
+    }
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/signin'
+  }
 
   // Don't show header on auth pages
   if (pathname === '/signin' || pathname === '/signup' || pathname === '/onboarding') {
@@ -37,38 +61,62 @@ export default function Header() {
         margin: '0 auto',
         display: 'flex',
         alignItems: 'center',
-        gap: '16px'
+        justifyContent: 'space-between'
       }}>
-        {/* Logo */}
-        <Link href="/feed" style={{ display: 'flex', alignItems: 'center' }}>
-          <img
-            src="/logo.png"
-            alt="UK Driver Hub"
-            style={{ 
-              height: '50px',
-              width: 'auto'
-            }}
-          />
-        </Link>
+        {/* Left side - Logo and Hamburger */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {/* Logo */}
+          <Link href="/feed" style={{ display: 'flex', alignItems: 'center' }}>
+            <img
+              src="/logo.png"
+              alt="UK Driver Hub"
+              style={{ 
+                height: '50px',
+                width: 'auto'
+              }}
+            />
+          </Link>
 
-        {/* Hamburger Button - right next to logo */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          {/* Hamburger Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            style={{
+              padding: '8px 12px',
+              backgroundColor: 'transparent',
+              border: '2px solid white',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '24px',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {mobileMenuOpen ? '✕' : '☰'}
+          </button>
+        </div>
+
+        {/* Right side - Profile Icon */}
+        <Link
+          href="/profile"
           style={{
-            padding: '8px 12px',
-            backgroundColor: 'transparent',
-            border: '2px solid white',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '24px',
-            color: 'white',
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            backgroundColor: '#eab308',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            textDecoration: 'none',
+            color: 'black',
+            fontWeight: 'bold',
+            fontSize: '18px'
           }}
+          title={profile?.name || 'Profile'}
         >
-          {mobileMenuOpen ? '✕' : '☰'}
-        </button>
+          {profile?.name?.charAt(0).toUpperCase() || '?'}
+        </Link>
       </div>
 
       {/* Menu Dropdown */}
@@ -108,6 +156,25 @@ export default function Header() {
                 <span>{link.emoji}</span> {link.label}
               </Link>
             ))}
+            {/* Sign Out Button */}
+            <button
+              onClick={() => { setMobileMenuOpen(false); handleSignOut() }}
+              style={{
+                padding: '14px 24px',
+                color: '#fca5a5',
+                backgroundColor: 'transparent',
+                border: 'none',
+                fontSize: '16px',
+                fontWeight: '400',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}
+            >
+              <span>🚪</span> Sign Out
+            </button>
           </nav>
         </div>
       )}
