@@ -49,6 +49,7 @@ export default function OnboardingPage() {
   const [region, setRegion] = useState('')
   const [licenseType, setLicenseType] = useState('')
   const [experience, setExperience] = useState('')
+  const [badgeNumber, setBadgeNumber] = useState('')
 
   useEffect(() => {
     checkUser()
@@ -86,7 +87,7 @@ export default function OnboardingPage() {
     setError('')
 
     if (!name.trim() || !region || !licenseType || !experience) {
-      setError('Please fill in all fields')
+      setError('Please fill in all required fields')
       setSubmitting(false)
       return
     }
@@ -99,6 +100,7 @@ export default function OnboardingPage() {
         region,
         license_type: licenseType,
         experience,
+        badge_number: badgeNumber.trim() || null,
         updated_at: new Date().toISOString()
       })
 
@@ -157,7 +159,7 @@ export default function OnboardingPage() {
               fontWeight: '500',
               fontSize: '14px'
             }}>
-              Your Name
+              Your Name *
             </label>
             <input
               type="text"
@@ -183,7 +185,7 @@ export default function OnboardingPage() {
               fontWeight: '500',
               fontSize: '14px'
             }}>
-              Region
+              Region *
             </label>
             <select
               value={region}
@@ -213,7 +215,7 @@ export default function OnboardingPage() {
               fontWeight: '500',
               fontSize: '14px'
             }}>
-              License Type
+              License Type *
             </label>
             <select
               value={licenseType}
@@ -236,14 +238,14 @@ export default function OnboardingPage() {
             </select>
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '20px' }}>
             <label style={{ 
               display: 'block', 
               marginBottom: '6px', 
               fontWeight: '500',
               fontSize: '14px'
             }}>
-              Years of Experience
+              Years of Experience *
             </label>
             <select
               value={experience}
@@ -264,6 +266,31 @@ export default function OnboardingPage() {
                 <option key={exp} value={exp}>{exp}</option>
               ))}
             </select>
+          </div>
+
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '6px', 
+              fontWeight: '500',
+              fontSize: '14px'
+            }}>
+              Badge Number <span style={{ color: '#666', fontWeight: 'normal' }}>(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={badgeNumber}
+              onChange={(e) => setBadgeNumber(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="Enter your badge number"
+            />
           </div>
 
           {error && (
