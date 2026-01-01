@@ -20,6 +20,7 @@ interface EarningsDaily {
   app_amount: number
   total_fares: number
   notes: string | null
+  company: string | null
 }
 
 interface ExpenseEntry {
@@ -73,6 +74,7 @@ export default function FinancePage() {
   const [cardAmount, setCardAmount] = useState('')
   const [appAmount, setAppAmount] = useState('')
   const [incomeNotes, setIncomeNotes] = useState('')
+  const [incomeCompany, setIncomeCompany] = useState('')
   const [submittingIncome, setSubmittingIncome] = useState(false)
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0])
   const [expenseCategory, setExpenseCategory] = useState('fuel')
@@ -153,9 +155,10 @@ export default function FinancePage() {
       setCashAmount(earning.cash_amount.toString()); setAccountAmount(earning.account_amount.toString())
       setCardAmount(earning.card_amount.toString()); setAppAmount(earning.app_amount.toString())
       setIncomeNotes(earning.notes || '')
+      setIncomeCompany(earning.company || '')
     } else {
       setEditingEarning(null); setIncomeDate(new Date().toISOString().split('T')[0])
-      setCashAmount(''); setAccountAmount(''); setCardAmount(''); setAppAmount(''); setIncomeNotes('')
+      setCashAmount(''); setAccountAmount(''); setCardAmount(''); setAppAmount(''); setIncomeNotes(''); setIncomeCompany('')
     }
     setShowIncomeModal(true)
   }
@@ -172,17 +175,17 @@ export default function FinancePage() {
         total_jobs: existing.total_jobs + 1, cash_amount: Number(existing.cash_amount) + cash,
         account_amount: Number(existing.account_amount) + account, card_amount: Number(existing.card_amount) + card,
         app_amount: Number(existing.app_amount) + app, total_fares: Number(existing.total_fares) + totalFares,
-        notes: incomeNotes || existing.notes, updated_at: new Date().toISOString()
+        notes: incomeNotes || existing.notes, company: incomeCompany || existing.company, updated_at: new Date().toISOString()
       }).eq('id', existing.id)
     } else if (editingEarning) {
       await supabase.from('earnings_daily').update({
         cash_amount: cash, account_amount: account, card_amount: card, app_amount: app,
-        total_fares: totalFares, notes: incomeNotes || null, updated_at: new Date().toISOString()
+        total_fares: totalFares, notes: incomeNotes || null, company: incomeCompany || null, updated_at: new Date().toISOString()
       }).eq('id', editingEarning.id)
     } else {
       await supabase.from('earnings_daily').insert([{
         user_id: user.id, date: incomeDate, total_jobs: 1, cash_amount: cash,
-        account_amount: account, card_amount: card, app_amount: app, total_fares: totalFares, notes: incomeNotes || null
+        account_amount: account, card_amount: card, app_amount: app, total_fares: totalFares, notes: incomeNotes || null, company: incomeCompany || null
       }])
     }
     setShowIncomeModal(false); setSubmittingIncome(false); loadData()
@@ -261,7 +264,7 @@ export default function FinancePage() {
     const expTotalJobs = exportEarnings.reduce((sum, e) => sum + e.total_jobs, 0)
     
     let csv = `Taxi Finance Report\nPeriod: ${exportStartDate} to ${exportEndDate}\nGenerated: ${new Date().toLocaleDateString('en-GB')}\n\n`
-    csv += 'Date,Type,Category,Description,Cash,Account,Card,App,Total Fares,Expense Amount,Jobs,Notes\n'
+    csv += 'Date,Type,Category,Description,Cash,Account,Card,App,Total Fares,Expense Amount,Jobs,Notes,Company\n'
     
     // Combine and sort by date
     const allDates = new Set<string>()
@@ -272,8 +275,8 @@ export default function FinancePage() {
     sortedDates.forEach(date => {
       const dayEarning = exportEarnings.find(e => e.date === date)
       const dayExpenses = exportExpenses.filter(e => e.date === date)
-      if (dayEarning) csv += `${date},Income,,,"${dayEarning.cash_amount}","${dayEarning.account_amount}","${dayEarning.card_amount}","${dayEarning.app_amount}","${dayEarning.total_fares}",,"${dayEarning.total_jobs}","${dayEarning.notes || ''}"\n`
-      dayExpenses.forEach(exp => csv += `${date},Expense,"${getCategoryLabel(exp.category)}","${exp.description || ''}",,,,,,"${exp.amount}",,\n`)
+      if (dayEarning) csv += `${date},Income,,,"${dayEarning.cash_amount}","${dayEarning.account_amount}","${dayEarning.card_amount}","${dayEarning.app_amount}","${dayEarning.total_fares}",,"${dayEarning.total_jobs}","${dayEarning.notes || ''}","${dayEarning.company || ''}"\n`
+      dayExpenses.forEach(exp => csv += `${date},Expense,"${getCategoryLabel(exp.category)}","${exp.description || ''}",,,,,,"${exp.amount}",,,\n`)
     })
     
     csv += `\n--- SUMMARY ---\n`
@@ -404,6 +407,7 @@ export default function FinancePage() {
                           <span>📱 App: {formatCurrency(Number(day.earnings.app_amount))}</span>
                           <span>🚗 Jobs: {day.earnings.total_jobs}</span>
                         </div>
+                        {day.earnings.company && <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#3b82f6', fontWeight: '500' }}>🏢 Company: {day.earnings.company}</p>}
                         {day.earnings.notes && <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#666', fontStyle: 'italic' }}>"{day.earnings.notes}"</p>}
                       </div>
                       <div style={{ display: 'flex', gap: '8px' }}>
@@ -453,9 +457,13 @@ export default function FinancePage() {
                 <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>💳 Card</label><input type="number" step="0.01" value={cardAmount} onChange={e => setCardAmount(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} /></div>
                 <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>📱 App</label><input type="number" step="0.01" value={appAmount} onChange={e => setAppAmount(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} /></div>
               </div>
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Notes (optional)</label>
                 <textarea value={incomeNotes} onChange={e => setIncomeNotes(e.target.value)} rows={2} placeholder="Pickup address, Name or Job ID No. This is advisable for your records" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical' }} />
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>🏢 Company (optional)</label>
+                <input type="text" value={incomeCompany} onChange={e => setIncomeCompany(e.target.value)} placeholder="Enter here what company supplied you with the job" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
               </div>
               <div style={{ backgroundColor: '#fef3c7', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' }}>
                 <p style={{ margin: 0, fontSize: '14px' }}>Total Fares: <strong>£{((parseFloat(cashAmount) || 0) + (parseFloat(accountAmount) || 0) + (parseFloat(cardAmount) || 0) + (parseFloat(appAmount) || 0)).toFixed(2)}</strong></p>

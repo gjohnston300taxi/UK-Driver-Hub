@@ -936,7 +936,25 @@ export default function ResourcesPage() {
                         <div style={{ fontSize: '14px' }}>{renderStars(company.rating)} ({company.rating})</div>
                       </div>
                     </div>
-                    <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>{company.description}</p>
+                    <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#666' }}>{company.description}</p>
+                    <a 
+                      href="#" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      style={{ 
+                        display: 'inline-block',
+                        padding: '8px 12px', 
+                        backgroundColor: '#eab308', 
+                        color: 'black', 
+                        textDecoration: 'none', 
+                        borderRadius: '6px', 
+                        fontSize: '13px', 
+                        fontWeight: '500',
+                        marginBottom: company.pros && company.cons ? '12px' : '0'
+                      }}
+                    >
+                      🌐 Visit Website
+                    </a>
                     {company.pros && company.cons && (
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
                         <div>
@@ -1002,7 +1020,7 @@ export default function ResourcesPage() {
                     {expandedFaq === index && (
                       <div style={{
                         padding: '0 16px 16px 16px',
-                        fontSize: '14px',
+                        fontSize: '16px',
                         lineHeight: '1.6',
                         color: '#333',
                         whiteSpace: 'pre-line'

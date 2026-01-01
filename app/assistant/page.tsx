@@ -128,7 +128,7 @@ export default function AssistantPage() {
     "What expenses can I claim as a taxi driver?",
     "What should I do if a passenger refuses to pay?",
     "How do I report an accident?",
-    "What are the licensing differences between England and Scotland?"
+    "What do you need to know about the traffic laws?"
   ]
 
   if (loading) {
@@ -275,19 +275,6 @@ export default function AssistantPage() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 💰 Finance
-              </a>
-              <a 
-                href="/resources" 
-                style={{ 
-                  padding: '16px', 
-                  color: '#333', 
-                  textDecoration: 'none', 
-                  fontSize: '16px',
-                  borderBottom: '1px solid #f3f4f6'
-                }}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                📚 Resources
               </a>
               <a 
                 href="/assistant" 
