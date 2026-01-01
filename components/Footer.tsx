@@ -13,7 +13,7 @@ export default function Footer() {
 
   return (
     <footer style={{
-      backgroundColor: '#2d3748',
+      backgroundColor: '#96a2a4',
       color: 'white',
       padding: '40px 24px 24px',
       marginTop: 'auto'
@@ -41,7 +41,7 @@ export default function Footer() {
             </h3>
             <p style={{ 
               fontSize: '14px', 
-              color: '#a0aec0',
+              color: 'white',
               lineHeight: '1.6'
             }}>
               Keeping you on the right road. The community platform for UK taxi and private hire drivers.
@@ -59,16 +59,16 @@ export default function Footer() {
               Quick Links
             </h3>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <Link href="/feed" style={{ color: '#a0aec0', textDecoration: 'none', fontSize: '14px' }}>
+              <Link href="/feed" style={{ color: 'white', textDecoration: 'none', fontSize: '14px' }}>
                 Feed
               </Link>
-              <Link href="/news" style={{ color: '#a0aec0', textDecoration: 'none', fontSize: '14px' }}>
+              <Link href="/news" style={{ color: 'white', textDecoration: 'none', fontSize: '14px' }}>
                 News
               </Link>
-              <Link href="/marketplace" style={{ color: '#a0aec0', textDecoration: 'none', fontSize: '14px' }}>
+              <Link href="/marketplace" style={{ color: 'white', textDecoration: 'none', fontSize: '14px' }}>
                 Marketplace
               </Link>
-              <Link href="/resources" style={{ color: '#a0aec0', textDecoration: 'none', fontSize: '14px' }}>
+              <Link href="/resources" style={{ color: 'white', textDecoration: 'none', fontSize: '14px' }}>
                 Resources
               </Link>
             </nav>
@@ -85,10 +85,10 @@ export default function Footer() {
               Legal
             </h3>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <Link href="/terms" style={{ color: '#a0aec0', textDecoration: 'none', fontSize: '14px' }}>
+              <Link href="/terms" style={{ color: 'white', textDecoration: 'none', fontSize: '14px' }}>
                 Terms & Conditions
               </Link>
-              <Link href="/privacy" style={{ color: '#a0aec0', textDecoration: 'none', fontSize: '14px' }}>
+              <Link href="/privacy" style={{ color: 'white', textDecoration: 'none', fontSize: '14px' }}>
                 Privacy Policy
               </Link>
             </nav>
@@ -107,11 +107,11 @@ export default function Footer() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <a 
                 href="mailto:support@ukdriverhub.com" 
-                style={{ color: '#a0aec0', textDecoration: 'none', fontSize: '14px' }}
+                style={{ color: 'white', textDecoration: 'none', fontSize: '14px' }}
               >
                 📧 support@ukdriverhub.com
               </a>
-              <p style={{ color: '#a0aec0', fontSize: '14px', margin: 0 }}>
+              <p style={{ color: 'white', fontSize: '14px', margin: 0 }}>
                 📍 United Kingdom
               </p>
             </div>
@@ -120,7 +120,7 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div style={{
-          borderTop: '1px solid #4a5568',
+          borderTop: '1px solid rgba(255,255,255,0.3)',
           paddingTop: '24px',
           display: 'flex',
           flexWrap: 'wrap',
@@ -130,19 +130,19 @@ export default function Footer() {
         }}>
           <p style={{ 
             fontSize: '14px', 
-            color: '#a0aec0',
+            color: 'white',
             margin: 0
           }}>
             © {new Date().getFullYear()} UK Driver Hub. All rights reserved.
           </p>
           <div style={{ display: 'flex', gap: '16px' }}>
-            <Link href="/terms" style={{ color: '#a0aec0', textDecoration: 'none', fontSize: '13px' }}>
+            <Link href="/terms" style={{ color: 'white', textDecoration: 'none', fontSize: '13px' }}>
               Terms
             </Link>
-            <Link href="/privacy" style={{ color: '#a0aec0', textDecoration: 'none', fontSize: '13px' }}>
+            <Link href="/privacy" style={{ color: 'white', textDecoration: 'none', fontSize: '13px' }}>
               Privacy
             </Link>
-            <Link href="/contact" style={{ color: '#a0aec0', textDecoration: 'none', fontSize: '13px' }}>
+            <Link href="/contact" style={{ color: 'white', textDecoration: 'none', fontSize: '13px' }}>
               Contact
             </Link>
           </div>
