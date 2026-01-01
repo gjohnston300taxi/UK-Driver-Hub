@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import PostCard from './PostCard'
 
 const supabase = createClient(
@@ -71,40 +70,73 @@ export default function PostList({ userId, userRegion }: PostListProps) {
     loadPosts()
   }
 
+  const tabContainerStyle: React.CSSProperties = {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    padding: '16px'
+  }
+
+  const tabsWrapperStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    backgroundColor: '#f3f4f6',
+    borderRadius: '6px',
+    padding: '4px'
+  }
+
+  const getTabStyle = (isActive: boolean): React.CSSProperties => ({
+    padding: '8px 16px',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    backgroundColor: isActive ? '#eab308' : 'transparent',
+    color: isActive ? 'black' : '#6b7280',
+    transition: 'all 0.2s'
+  })
+
+  const loadingStyle: React.CSSProperties = {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    padding: '32px',
+    textAlign: 'center'
+  }
+
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-        <p className="text-gray-500">Loading posts...</p>
+      <div style={loadingStyle}>
+        <p style={{ color: '#6b7280', margin: 0 }}>Loading posts...</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Region Filter */}
-      <div className="bg-white rounded-lg shadow-sm p-4">
-        <Tabs value={filter} onValueChange={(value) => setFilter(value as 'all' | 'my-region')}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger 
-              value="all"
-              className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black"
-            >
-              All UK
-            </TabsTrigger>
-            <TabsTrigger 
-              value="my-region"
-              className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black"
-            >
-              My Region ({userRegion})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div style={tabContainerStyle}>
+        <div style={tabsWrapperStyle}>
+          <button
+            onClick={() => setFilter('all')}
+            style={getTabStyle(filter === 'all')}
+          >
+            All UK
+          </button>
+          <button
+            onClick={() => setFilter('my-region')}
+            style={getTabStyle(filter === 'my-region')}
+          >
+            My Region ({userRegion})
+          </button>
+        </div>
       </div>
 
       {/* Posts */}
       {posts.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-          <p className="text-gray-500">
+        <div style={loadingStyle}>
+          <p style={{ color: '#6b7280', margin: 0 }}>
             {filter === 'my-region' 
               ? `No posts from ${userRegion} yet. Be the first to share!`
               : 'No posts yet. Be the first to share something!'
@@ -112,7 +144,7 @@ export default function PostList({ userId, userRegion }: PostListProps) {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {posts.map((post) => (
             <PostCard 
               key={post.id} 

@@ -1,9 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { Button } from '@/components/ui/button'
 import LikeButton from './LikeButton'
 import CommentList from './CommentList'
 import { MessageSquare } from 'lucide-react'
@@ -49,21 +46,47 @@ export default function PostCard({ post, userId, onUpdate }: PostCardProps) {
     }
   }
 
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    padding: '24px'
+  }
+
+  const separatorStyle: React.CSSProperties = {
+    height: '1px',
+    backgroundColor: '#e5e7eb',
+    margin: '16px 0',
+    border: 'none'
+  }
+
+  const buttonStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '8px 12px',
+    backgroundColor: 'transparent',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    color: '#4b5563'
+  }
+
   return (
-    <Card className="p-6 space-y-4">
+    <div style={cardStyle}>
       {/* Post Header */}
-      <div className="flex justify-between items-start">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <p className="font-semibold text-gray-900">{post.profiles.name}</p>
-          <p className="text-sm text-gray-500">
+          <p style={{ fontWeight: '600', color: '#111827', margin: 0 }}>{post.profiles.name}</p>
+          <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
             {post.profiles.region} • {formatDate(post.created_at)}
           </p>
         </div>
       </div>
 
       {/* Post Content */}
-      <div className="space-y-3">
-        <p className="text-gray-800 whitespace-pre-wrap">{post.content}</p>
+      <div style={{ marginTop: '16px' }}>
+        <p style={{ color: '#1f2937', whiteSpace: 'pre-wrap', margin: 0 }}>{post.content}</p>
         
         {/* Link URL */}
         {post.link_url && (
@@ -71,37 +94,42 @@ export default function PostCard({ post, userId, onUpdate }: PostCardProps) {
             href={post.link_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 hover:underline"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              fontSize: '14px',
+              color: '#2563eb',
+              textDecoration: 'none',
+              marginTop: '12px'
+            }}
           >
             🔗 {new URL(post.link_url).hostname}
           </a>
         )}
       </div>
 
-      <Separator />
+      <hr style={separatorStyle} />
 
       {/* Actions */}
-      <div className="flex items-center gap-4">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <LikeButton postId={post.id} userId={userId} onUpdate={onUpdate} />
         
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
           onClick={() => setShowComments(!showComments)}
-          className="text-gray-600 hover:text-gray-900"
+          style={buttonStyle}
         >
-          <MessageSquare className="w-4 h-4 mr-1" />
+          <MessageSquare style={{ width: '16px', height: '16px', marginRight: '4px' }} />
           {showComments ? 'Hide' : 'Show'} Comments
-        </Button>
+        </button>
       </div>
 
       {/* Comments Section */}
       {showComments && (
         <>
-          <Separator />
+          <hr style={separatorStyle} />
           <CommentList postId={post.id} userId={userId} />
         </>
       )}
-    </Card>
+    </div>
   )
 }

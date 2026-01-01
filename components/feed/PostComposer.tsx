@@ -2,10 +2,6 @@
 
 import { useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
 import { useRouter } from 'next/navigation'
 
 const supabase = createClient(
@@ -75,49 +71,101 @@ export default function PostComposer({ userId, userRegion }: PostComposerProps) 
   const charCount = content.length
   const isOverLimit = charCount > 1000
 
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    padding: '24px'
+  }
+
+  const textareaStyle: React.CSSProperties = {
+    width: '100%',
+    minHeight: '120px',
+    padding: '12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '16px',
+    resize: 'none',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box'
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '16px',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box'
+  }
+
+  const buttonStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px',
+    backgroundColor: loading || !content.trim() || isOverLimit ? '#d1d5db' : '#eab308',
+    color: loading || !content.trim() || isOverLimit ? '#6b7280' : 'black',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: loading || !content.trim() || isOverLimit ? 'not-allowed' : 'pointer'
+  }
+
   return (
-    <Card className="p-6">
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div style={cardStyle}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div>
-          <Textarea
+          <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="What's happening in your driving world?"
-            className="min-h-[120px] resize-none focus:ring-yellow-500 focus:border-yellow-500"
+            style={textareaStyle}
             disabled={loading}
           />
-          <div className="flex justify-between items-center mt-2">
-            <span className={`text-sm ${isOverLimit ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+            <span style={{ 
+              fontSize: '14px', 
+              color: isOverLimit ? '#dc2626' : '#6b7280',
+              fontWeight: isOverLimit ? '500' : 'normal'
+            }}>
               {charCount} / 1000
             </span>
           </div>
         </div>
 
         <div>
-          <Input
+          <input
             type="url"
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
             placeholder="Add a link (optional)"
-            className="focus:ring-yellow-500 focus:border-yellow-500"
+            style={inputStyle}
             disabled={loading}
           />
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+          <div style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#b91c1c',
+            padding: '12px 16px',
+            borderRadius: '6px',
+            fontSize: '14px'
+          }}>
             {error}
           </div>
         )}
 
-        <Button
+        <button
           type="submit"
           disabled={loading || !content.trim() || isOverLimit}
-          className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
+          style={buttonStyle}
         >
           {loading ? 'Posting...' : 'Post'}
-        </Button>
+        </button>
       </form>
-    </Card>
+    </div>
   )
 }

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import { Button } from '@/components/ui/button'
 import { Heart } from 'lucide-react'
 
 const supabase = createClient(
@@ -99,21 +98,31 @@ export default function LikeButton({ postId, userId, onUpdate }: LikeButtonProps
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
+    <button
       onClick={toggleLike}
       disabled={loading}
-      className={`${
-        hasLiked 
-          ? 'text-yellow-600 hover:text-yellow-700' 
-          : 'text-gray-600 hover:text-gray-900'
-      }`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '8px 12px',
+        backgroundColor: 'transparent',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: loading ? 'not-allowed' : 'pointer',
+        fontSize: '14px',
+        color: hasLiked ? '#ca8a04' : '#4b5563',
+        transition: 'all 0.2s'
+      }}
     >
       <Heart 
-        className={`w-4 h-4 mr-1 ${hasLiked ? 'fill-yellow-600' : ''}`}
+        style={{
+          width: '16px',
+          height: '16px',
+          marginRight: '4px',
+          fill: hasLiked ? '#ca8a04' : 'none'
+        }}
       />
       {likeCount} {likeCount === 1 ? 'Like' : 'Likes'}
-    </Button>
+    </button>
   )
 }
