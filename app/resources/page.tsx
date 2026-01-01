@@ -494,7 +494,8 @@ export default function ResourcesPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'cities' | 'companies' | 'faq' | 'guides'>('cities')
-  const [selectedRegion, setSelectedRegion] = useState<string>('Scotland 🏴󠁧󠁢󠁳󠁣󠁴󠁿')
+  const [selectedRegion, setSelectedRegion] = useState<string>('')
+  const [showRegionalCompanies, setShowRegionalCompanies] = useState(false)
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
 
   useEffect(() => {
@@ -524,6 +525,11 @@ export default function ResourcesPage() {
 
     setProfile(profileData)
     setLoading(false)
+  }
+
+  const handleRegionSelect = (region: string) => {
+    setSelectedRegion(region)
+    setShowRegionalCompanies(true)
   }
 
   const renderStars = (rating: number) => {
@@ -789,95 +795,140 @@ export default function ResourcesPage() {
               {/* Regional Companies */}
               <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#666' }}>🏢 Regional Companies</h4>
               
-              {/* Region Selector */}
-              <select
-                value={selectedRegion}
-                onChange={(e) => setSelectedRegion(e.target.value)}
+              {/* Region Selector Button */}
+              <button
+                onClick={() => setShowRegionalCompanies(!showRegionalCompanies)}
                 style={{
                   width: '100%',
-                  padding: '12px',
+                  padding: '14px 16px',
+                  backgroundColor: showRegionalCompanies ? '#eab308' : '#f9fafb',
                   border: '1px solid #e5e7eb',
                   borderRadius: '8px',
                   fontSize: '16px',
-                  marginBottom: '16px',
-                  backgroundColor: 'white'
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: showRegionalCompanies ? '12px' : '0'
                 }}
               >
-                {Object.keys(regionalCompanies).map(region => (
-                  <option key={region} value={region}>{region}</option>
-                ))}
-              </select>
+                <span>{selectedRegion || 'Select a region to see local companies'}</span>
+                <span style={{ fontSize: '18px' }}>{showRegionalCompanies ? '▲' : '▼'}</span>
+              </button>
 
-              {/* Companies List */}
-              <div style={{ display: 'grid', gap: '12px' }}>
-                {regionalCompanies[selectedRegion]?.map(company => (
-                  <div
-                    key={company.name}
-                    style={{
-                      padding: '16px',
-                      backgroundColor: '#f9fafb',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
+              {/* Region List */}
+              {showRegionalCompanies && !selectedRegion && (
+                <div style={{ display: 'grid', gap: '8px', marginBottom: '16px' }}>
+                  {Object.keys(regionalCompanies).map(region => (
+                    <button
+                      key={region}
+                      onClick={() => handleRegionSelect(region)}
+                      style={{
+                        padding: '12px 16px',
+                        backgroundColor: '#f9fafb',
+                        border: '1px solid #e5e7eb',
                         borderRadius: '8px',
-                        backgroundColor: '#3b82f6',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
-                        fontSize: '14px',
-                        color: 'white'
-                      }}>
-                        {getInitials(company.name)}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <h5 style={{ margin: 0, fontSize: '15px' }}>{company.name}</h5>
-                        <div style={{ fontSize: '14px' }}>{renderStars(company.rating)} ({company.rating})</div>
-                      </div>
-                    </div>
-                    <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#666' }}>{company.description}</p>
-                    <a 
-                      href="#" 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      style={{ 
-                        display: 'inline-block',
-                        padding: '8px 12px', 
-                        backgroundColor: '#eab308', 
-                        color: 'black', 
-                        textDecoration: 'none', 
-                        borderRadius: '6px', 
-                        fontSize: '13px', 
-                        fontWeight: '500',
-                        marginBottom: company.pros && company.cons ? '12px' : '0'
+                        fontSize: '15px',
+                        cursor: 'pointer',
+                        textAlign: 'left'
                       }}
                     >
-                      🌐 Visit Website
-                    </a>
-                    {company.pros && company.cons && (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
-                        <div>
-                          <strong style={{ color: '#16a34a', fontSize: '13px' }}>✓ Pros</strong>
-                          <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px', fontSize: '12px' }}>
-                            {company.pros.map((pro, i) => <li key={i} style={{ marginBottom: '2px' }}>{pro}</li>)}
-                          </ul>
+                      {region}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Selected Region Companies */}
+              {showRegionalCompanies && selectedRegion && (
+                <>
+                  <button
+                    onClick={() => setSelectedRegion('')}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#f3f4f6',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      marginBottom: '12px'
+                    }}
+                  >
+                    ← Back to regions
+                  </button>
+
+                  <div style={{ display: 'grid', gap: '12px' }}>
+                    {regionalCompanies[selectedRegion]?.map(company => (
+                      <div
+                        key={company.name}
+                        style={{
+                          padding: '16px',
+                          backgroundColor: '#f9fafb',
+                          borderRadius: '8px',
+                          border: '1px solid #e5e7eb'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '8px',
+                            backgroundColor: '#3b82f6',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            fontSize: '14px',
+                            color: 'white'
+                          }}>
+                            {getInitials(company.name)}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <h5 style={{ margin: 0, fontSize: '15px' }}>{company.name}</h5>
+                            <div style={{ fontSize: '14px' }}>{renderStars(company.rating)} ({company.rating})</div>
+                          </div>
                         </div>
-                        <div>
-                          <strong style={{ color: '#dc2626', fontSize: '13px' }}>✗ Cons</strong>
-                          <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px', fontSize: '12px' }}>
-                            {company.cons.map((con, i) => <li key={i} style={{ marginBottom: '2px' }}>{con}</li>)}
-                          </ul>
-                        </div>
+                        <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#666' }}>{company.description}</p>
+                        <a 
+                          href="#" 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          style={{ 
+                            display: 'inline-block',
+                            padding: '8px 12px', 
+                            backgroundColor: '#eab308', 
+                            color: 'black', 
+                            textDecoration: 'none', 
+                            borderRadius: '6px', 
+                            fontSize: '13px', 
+                            fontWeight: '500',
+                            marginBottom: company.pros && company.cons ? '12px' : '0'
+                          }}
+                        >
+                          🌐 Visit Website
+                        </a>
+                        {company.pros && company.cons && (
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+                            <div>
+                              <strong style={{ color: '#16a34a', fontSize: '13px' }}>✓ Pros</strong>
+                              <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px', fontSize: '12px' }}>
+                                {company.pros.map((pro, i) => <li key={i} style={{ marginBottom: '2px' }}>{pro}</li>)}
+                              </ul>
+                            </div>
+                            <div>
+                              <strong style={{ color: '#dc2626', fontSize: '13px' }}>✗ Cons</strong>
+                              <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px', fontSize: '12px' }}>
+                                {company.cons.map((con, i) => <li key={i} style={{ marginBottom: '2px' }}>{con}</li>)}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </div>
           )}
 
