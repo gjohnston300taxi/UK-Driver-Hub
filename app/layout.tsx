@@ -1,5 +1,6 @@
 import './globals.css'
 import Header from '@/components/Header'
+import Footer from '@/components/Footer'
 
 export const metadata = {
   title: 'UK Driver Hub',
@@ -13,11 +14,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
+      <body style={{ 
+        margin: 0, 
+        minHeight: '100vh', 
+        backgroundColor: '#f3f4f6',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
         <Header />
-        <main>
+        <main style={{ flex: 1 }}>
           {children}
         </main>
+        <Footer />
       </body>
     </html>
   )
