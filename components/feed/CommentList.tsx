@@ -2,9 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -106,15 +103,22 @@ export default function CommentList({ postId, userId }: CommentListProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Comment Input */}
-      <form onSubmit={addComment} className="flex gap-2">
-        <Input
+      <form onSubmit={addComment} style={{ display: 'flex', gap: '8px' }}>
+        <input
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Add a comment..."
           disabled={submitting}
-          className="flex-1 focus:ring-yellow-500 focus:border-yellow-500"
+          style={{
+            flex: 1,
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            fontSize: '14px',
+            outline: 'none'
+          }}
           onKeyPress={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault()
@@ -122,43 +126,61 @@ export default function CommentList({ postId, userId }: CommentListProps) {
             }
           }}
         />
-        <Button
+        <button
           type="submit"
           disabled={submitting || !newComment.trim()}
-          className="bg-yellow-500 hover:bg-yellow-600 text-black"
+          style={{
+            padding: '8px 16px',
+            backgroundColor: submitting || !newComment.trim() ? '#d1d5db' : '#eab308',
+            color: 'black',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: submitting || !newComment.trim() ? 'not-allowed' : 'pointer',
+            fontWeight: '500',
+            fontSize: '14px'
+          }}
         >
           {submitting ? 'Posting...' : 'Comment'}
-        </Button>
+        </button>
       </form>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">
+        <div style={{
+          backgroundColor: '#fef2f2',
+          border: '1px solid #fecaca',
+          color: '#dc2626',
+          padding: '8px 12px',
+          borderRadius: '6px',
+          fontSize: '14px'
+        }}>
           {error}
         </div>
       )}
 
       {/* Comments List */}
       {loading ? (
-        <p className="text-sm text-gray-500 text-center py-4">Loading comments...</p>
+        <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '16px 0' }}>
+          Loading comments...
+        </p>
       ) : comments.length === 0 ? (
-        <p className="text-sm text-gray-500 text-center py-4">
+        <p style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '16px 0' }}>
           No comments yet. Be the first to comment!
         </p>
       ) : (
-        <div className="space-y-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {comments.map((comment, index) => (
             <div key={comment.id}>
-              {index > 0 && <Separator className="my-3" />}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold text-sm text-gray-900">
+              {index > 0 && <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '12px 0' }} />}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <p style={{ fontWeight: '600', fontSize: '14px', color: '#111827', margin: 0 }}>
                     {comment.profiles.name}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>
                     {formatDate(comment.created_at)}
                   </p>
                 </div>
-                <p className="text-sm text-gray-700">{comment.content}</p>
+                <p style={{ fontSize: '14px', color: '#374151', margin: 0 }}>{comment.content}</p>
               </div>
             </div>
           ))}
