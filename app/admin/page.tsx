@@ -2,113 +2,105 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import Link from 'next/link'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const NEWS_CATEGORIES = [
-  { id: 'taxi', label: '🚕 Taxi News' },
-  { id: 'rideshare', label: '📱 Rideshare Apps' },
-  { id: 'safety', label: '🛡️ Safety' },
-  { id: 'government', label: '🏛️ Government & Tax' }
-]
-
-const COMPANY_CATEGORIES = [
-  { id: 'cars', label: '🚗 Car Sales' },
-  { id: 'insurance', label: '🛡️ Insurance' }
-]
-
-const EMOJI_OPTIONS = ['🚕', '🚖', '🚗', '🏠', '⚡', '🏭', '🔋', '🤝', '⭐', '📱', '🌳', '🏢', '🌊', '💼', '🛡️', '🚙', '🏪', '💚', '🔵', '🟡']
-
-interface User {
+interface Company {
   id: string
   name: string
-  email: string
   region: string
-  badge_number: string
-  is_admin: boolean
-  created_at: string
-}
-
-interface NewsArticle {
-  id: string
-  title: string
-  summary: string
-  source: string
-  source_url: string
-  category: string
-  image_url: string | null
-  published_at: string
-}
-
-interface MarketplaceCompany {
-  id: string
-  name: string
+  rating: number
   description: string
-  website: string
-  logo: string
-  category: 'cars' | 'insurance'
-  features: string[]
+  website_url: string
+  pros: string[]
+  cons: string[]
   created_at: string
 }
+
+interface MarketplaceListing {
+  id: string
+  category: 'insurance' | 'cars' | 'parts' | 'accessories' | 'services'
+  title: string
+  description: string
+  price: string
+  contact_info: string
+  website_url: string
+  image_url: string
+  region: string
+  featured: boolean
+  created_at: string
+}
+
+const REGIONS = [
+  'Scotland 🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿',
+  'Northern Ireland 🇬🇧',
+  'London 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'North East England 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'North West England 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'Yorkshire & Humber 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'East Midlands 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'West Midlands 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'East England 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'South East England 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'South West England 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'Republic of Ireland 🇮🇪',
+  'National 🇬🇧'
+]
+
+const MARKETPLACE_CATEGORIES = [
+  { id: 'insurance', label: '🛡️ Insurance' },
+  { id: 'cars', label: '🚗 Cars for Sale' },
+  { id: 'parts', label: '🔧 Car Parts' },
+  { id: 'accessories', label: '📱 Accessories' },
+  { id: 'services', label: '🔨 Services' }
+]
 
 export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'news' | 'users' | 'marketplace'>('news')
+  const [activeTab, setActiveTab] = useState<'companies' | 'marketplace'>('companies')
   
-  // Users state
-  const [users, setUsers] = useState<User[]>([])
-  const [loadingUsers, setLoadingUsers] = useState(false)
-  
-  // News state
-  const [news, setNews] = useState<NewsArticle[]>([])
-  const [loadingNews, setLoadingNews] = useState(false)
+  // Companies state
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [showCompanyForm, setShowCompanyForm] = useState(false)
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null)
+  const [companyForm, setCompanyForm] = useState({
+    name: '',
+    region: '',
+    rating: 4.0,
+    description: '',
+    website_url: '',
+    pros: '',
+    cons: ''
+  })
   
   // Marketplace state
-  const [companies, setCompanies] = useState<MarketplaceCompany[]>([])
-  const [loadingCompanies, setLoadingCompanies] = useState(false)
-  const [marketplaceFilter, setMarketplaceFilter] = useState<'all' | 'cars' | 'insurance'>('all')
-  
-  // Add news form
-  const [showAddNewsForm, setShowAddNewsForm] = useState(false)
-  const [newTitle, setNewTitle] = useState('')
-  const [newSummary, setNewSummary] = useState('')
-  const [newSource, setNewSource] = useState('')
-  const [newSourceUrl, setNewSourceUrl] = useState('')
-  const [newCategory, setNewCategory] = useState('taxi')
-  const [newImageUrl, setNewImageUrl] = useState('')
-  const [submittingNews, setSubmittingNews] = useState(false)
+  const [listings, setListings] = useState<MarketplaceListing[]>([])
+  const [showListingForm, setShowListingForm] = useState(false)
+  const [editingListing, setEditingListing] = useState<MarketplaceListing | null>(null)
+  const [listingForm, setListingForm] = useState({
+    category: 'insurance' as const,
+    title: '',
+    description: '',
+    price: '',
+    contact_info: '',
+    website_url: '',
+    image_url: '',
+    region: 'National 🇬🇧',
+    featured: false
+  })
 
-  // Add company form
-  const [showAddCompanyForm, setShowAddCompanyForm] = useState(false)
-  const [companyName, setCompanyName] = useState('')
-  const [companyDescription, setCompanyDescription] = useState('')
-  const [companyWebsite, setCompanyWebsite] = useState('')
-  const [companyLogo, setCompanyLogo] = useState('🏢')
-  const [companyCategory, setCompanyCategory] = useState<'cars' | 'insurance'>('cars')
-  const [companyFeatures, setCompanyFeatures] = useState('')
-  const [submittingCompany, setSubmittingCompany] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
 
   useEffect(() => {
     checkAdmin()
   }, [])
-
-  useEffect(() => {
-    if (profile?.is_admin) {
-      if (activeTab === 'users') {
-        loadUsers()
-      } else if (activeTab === 'news') {
-        loadNews()
-      } else if (activeTab === 'marketplace') {
-        loadCompanies()
-      }
-    }
-  }, [activeTab, profile])
 
   const checkAdmin = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -119,216 +111,222 @@ export default function AdminPage() {
     }
 
     setUser(user)
-
-    const { data: profileData } = await supabase
+    
+    // Check if user is admin in the database
+    const { data: profile } = await supabase
       .from('profiles')
-      .select('*')
+      .select('is_admin')
       .eq('id', user.id)
       .single()
-
-    if (!profileData?.is_admin) {
-      window.location.href = '/feed'
-      return
+    
+    if (profile?.is_admin === true) {
+      setIsAdmin(true)
+      loadCompanies()
+      loadListings()
     }
-
-    setProfile(profileData)
+    
     setLoading(false)
-    loadNews()
-  }
-
-  const loadUsers = async () => {
-    setLoadingUsers(true)
-    const { data: profiles, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error loading users:', error)
-    } else {
-      setUsers(profiles || [])
-    }
-    setLoadingUsers(false)
-  }
-
-  const loadNews = async () => {
-    setLoadingNews(true)
-    const { data, error } = await supabase
-      .from('news')
-      .select('*')
-      .order('published_at', { ascending: false })
-
-    if (error) {
-      console.error('Error loading news:', error)
-    } else {
-      setNews(data || [])
-    }
-    setLoadingNews(false)
   }
 
   const loadCompanies = async () => {
-    setLoadingCompanies(true)
     const { data, error } = await supabase
-      .from('marketplace_companies')
+      .from('companies')
       .select('*')
+      .order('region', { ascending: true })
+      .order('name', { ascending: true })
+
+    if (!error && data) {
+      setCompanies(data)
+    }
+  }
+
+  const loadListings = async () => {
+    const { data, error } = await supabase
+      .from('marketplace_listings')
+      .select('*')
+      .order('featured', { ascending: false })
       .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Error loading companies:', error)
-    } else {
-      setCompanies(data || [])
-    }
-    setLoadingCompanies(false)
-  }
-
-  const toggleAdminStatus = async (userId: string, currentStatus: boolean) => {
-    if (userId === user.id) {
-      alert("You can't remove your own admin status!")
-      return
-    }
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ is_admin: !currentStatus })
-      .eq('id', userId)
-
-    if (error) {
-      console.error('Error updating admin status:', error)
-      alert('Failed to update admin status')
-    } else {
-      loadUsers()
+    if (!error && data) {
+      setListings(data)
     }
   }
 
-  const handleAddNews = async (e: React.FormEvent) => {
+  // Company functions
+  const handleCompanySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!newTitle.trim() || !newSource.trim() || !newSourceUrl.trim()) {
-      alert('Please fill in title, source, and URL')
-      return
+    setSaving(true)
+    setMessage('')
+
+    const companyData = {
+      name: companyForm.name.trim(),
+      region: companyForm.region,
+      rating: companyForm.rating,
+      description: companyForm.description.trim(),
+      website_url: companyForm.website_url.trim(),
+      pros: companyForm.pros.split('\n').filter(p => p.trim()),
+      cons: companyForm.cons.split('\n').filter(c => c.trim())
     }
 
-    setSubmittingNews(true)
-
-    const { error } = await supabase
-      .from('news')
-      .insert([{
-        title: newTitle.trim(),
-        summary: newSummary.trim() || null,
-        source: newSource.trim(),
-        source_url: newSourceUrl.trim(),
-        category: newCategory,
-        image_url: newImageUrl.trim() || null,
-        published_at: new Date().toISOString()
-      }])
+    let error
+    if (editingCompany) {
+      const { error: updateError } = await supabase
+        .from('companies')
+        .update(companyData)
+        .eq('id', editingCompany.id)
+      error = updateError
+    } else {
+      const { error: insertError } = await supabase
+        .from('companies')
+        .insert([companyData])
+      error = insertError
+    }
 
     if (error) {
-      console.error('Error adding news:', error)
-      alert('Failed to add news: ' + error.message)
+      setMessage('Error: ' + error.message)
     } else {
-      setNewTitle('')
-      setNewSummary('')
-      setNewSource('')
-      setNewSourceUrl('')
-      setNewCategory('taxi')
-      setNewImageUrl('')
-      setShowAddNewsForm(false)
-      loadNews()
-    }
-
-    setSubmittingNews(false)
-  }
-
-  const handleDeleteNews = async (newsId: string) => {
-    if (!confirm('Delete this news article?')) return
-
-    const { error } = await supabase
-      .from('news')
-      .delete()
-      .eq('id', newsId)
-
-    if (error) {
-      alert('Failed to delete')
-    } else {
-      loadNews()
-    }
-  }
-
-  const handleAddCompany = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!companyName.trim() || !companyDescription.trim() || !companyWebsite.trim()) {
-      alert('Please fill in name, description, and website')
-      return
-    }
-
-    setSubmittingCompany(true)
-
-    // Parse features from comma-separated string
-    const featuresArray = companyFeatures
-      .split(',')
-      .map(f => f.trim())
-      .filter(f => f.length > 0)
-
-    const { error } = await supabase
-      .from('marketplace_companies')
-      .insert([{
-        name: companyName.trim(),
-        description: companyDescription.trim(),
-        website: companyWebsite.trim(),
-        logo: companyLogo,
-        category: companyCategory,
-        features: featuresArray
-      }])
-
-    if (error) {
-      console.error('Error adding company:', error)
-      alert('Failed to add company: ' + error.message)
-    } else {
-      setCompanyName('')
-      setCompanyDescription('')
-      setCompanyWebsite('')
-      setCompanyLogo('🏢')
-      setCompanyCategory('cars')
-      setCompanyFeatures('')
-      setShowAddCompanyForm(false)
+      setMessage(editingCompany ? 'Company updated!' : 'Company added!')
+      resetCompanyForm()
       loadCompanies()
     }
 
-    setSubmittingCompany(false)
+    setSaving(false)
   }
 
-  const handleDeleteCompany = async (companyId: string, companyName: string) => {
-    if (!confirm(`Delete "${companyName}" from the marketplace?`)) return
-
-    const { error } = await supabase
-      .from('marketplace_companies')
-      .delete()
-      .eq('id', companyId)
-
-    if (error) {
-      alert('Failed to delete company')
-    } else {
-      loadCompanies()
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
+  const editCompany = (company: Company) => {
+    setEditingCompany(company)
+    setCompanyForm({
+      name: company.name,
+      region: company.region,
+      rating: company.rating,
+      description: company.description,
+      website_url: company.website_url || '',
+      pros: (company.pros || []).join('\n'),
+      cons: (company.cons || []).join('\n')
     })
+    setShowCompanyForm(true)
   }
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    window.location.href = '/signin'
+  const deleteCompany = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this company?')) return
+
+    const { error } = await supabase
+      .from('companies')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      setMessage('Error: ' + error.message)
+    } else {
+      setMessage('Company deleted!')
+      loadCompanies()
+    }
   }
 
-  const filteredCompanies = marketplaceFilter === 'all' 
-    ? companies 
-    : companies.filter(c => c.category === marketplaceFilter)
+  const resetCompanyForm = () => {
+    setCompanyForm({
+      name: '',
+      region: '',
+      rating: 4.0,
+      description: '',
+      website_url: '',
+      pros: '',
+      cons: ''
+    })
+    setEditingCompany(null)
+    setShowCompanyForm(false)
+  }
+
+  // Marketplace functions
+  const handleListingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setMessage('')
+
+    const listingData = {
+      category: listingForm.category,
+      title: listingForm.title.trim(),
+      description: listingForm.description.trim(),
+      price: listingForm.price.trim(),
+      contact_info: listingForm.contact_info.trim(),
+      website_url: listingForm.website_url.trim(),
+      image_url: listingForm.image_url.trim(),
+      region: listingForm.region,
+      featured: listingForm.featured
+    }
+
+    let error
+    if (editingListing) {
+      const { error: updateError } = await supabase
+        .from('marketplace_listings')
+        .update(listingData)
+        .eq('id', editingListing.id)
+      error = updateError
+    } else {
+      const { error: insertError } = await supabase
+        .from('marketplace_listings')
+        .insert([listingData])
+      error = insertError
+    }
+
+    if (error) {
+      setMessage('Error: ' + error.message)
+    } else {
+      setMessage(editingListing ? 'Listing updated!' : 'Listing added!')
+      resetListingForm()
+      loadListings()
+    }
+
+    setSaving(false)
+  }
+
+  const editListing = (listing: MarketplaceListing) => {
+    setEditingListing(listing)
+    setListingForm({
+      category: listing.category,
+      title: listing.title,
+      description: listing.description,
+      price: listing.price || '',
+      contact_info: listing.contact_info || '',
+      website_url: listing.website_url || '',
+      image_url: listing.image_url || '',
+      region: listing.region,
+      featured: listing.featured
+    })
+    setShowListingForm(true)
+  }
+
+  const deleteListing = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this listing?')) return
+
+    const { error } = await supabase
+      .from('marketplace_listings')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      setMessage('Error: ' + error.message)
+    } else {
+      setMessage('Listing deleted!')
+      loadListings()
+    }
+  }
+
+  const resetListingForm = () => {
+    setListingForm({
+      category: 'insurance',
+      title: '',
+      description: '',
+      price: '',
+      contact_info: '',
+      website_url: '',
+      image_url: '',
+      region: 'National 🇬🇧',
+      featured: false
+    })
+    setEditingListing(null)
+    setShowListingForm(false)
+  }
 
   if (loading) {
     return (
@@ -339,371 +337,313 @@ export default function AdminPage() {
         justifyContent: 'center',
         backgroundColor: '#f3f4f6'
       }}>
-        <p>Loading...</p>
+        <p style={{ fontSize: '18px', color: '#666' }}>Loading...</p>
+      </div>
+    )
+  }
+
+  if (!isAdmin) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#f3f4f6'
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          padding: '40px',
+          borderRadius: '12px',
+          textAlign: 'center'
+        }}>
+          <h1 style={{ fontSize: '24px', marginBottom: '16px' }}>🔒 Access Denied</h1>
+          <p style={{ color: '#666' }}>You don't have permission to access this page.</p>
+        </div>
       </div>
     )
   }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
-      {/* Admin Header */}
-      <header style={{
-        backgroundColor: '#1f2937',
-        borderBottom: '1px solid #374151',
-        padding: '16px 24px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <Link href="/feed" style={{ textDecoration: 'none' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: 'white' }}>
-                🚕 Driver Hub
-              </h1>
-            </Link>
-            <span style={{ 
-              backgroundColor: '#dc2626', 
-              color: 'white', 
-              padding: '4px 12px', 
-              borderRadius: '4px',
-              fontSize: '12px',
-              fontWeight: '600'
-            }}>
-              ADMIN
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link href="/feed" style={{ color: '#9ca3af', textDecoration: 'none', fontSize: '14px' }}>
-              ← Back to Feed
-            </Link>
-            <span style={{ color: '#9ca3af', fontSize: '14px' }}>
-              {profile?.name}
-            </span>
-            <button
-              onClick={handleSignOut}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: 'transparent',
-                border: '1px solid #4b5563',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: 'white'
-              }}
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 16px' }}>
-        {/* Tab Navigation */}
+      <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '16px' }}>
+        {/* Header */}
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '6px',
-          marginBottom: '24px',
+          borderRadius: '8px',
+          padding: '20px',
+          marginBottom: '16px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }}>
+          <h1 style={{ margin: '0 0 8px 0', fontSize: '24px' }}>⚙️ Admin Panel</h1>
+          <p style={{ margin: 0, color: '#666' }}>Manage companies and marketplace listings</p>
+        </div>
+
+        {/* Message */}
+        {message && (
+          <div style={{
+            backgroundColor: message.startsWith('Error') ? '#fef2f2' : '#f0fdf4',
+            border: `1px solid ${message.startsWith('Error') ? '#fecaca' : '#bbf7d0'}`,
+            color: message.startsWith('Error') ? '#dc2626' : '#16a34a',
+            padding: '12px',
+            borderRadius: '8px',
+            marginBottom: '16px'
+          }}>
+            {message}
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          padding: '4px',
+          marginBottom: '16px',
           display: 'flex',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
         }}>
           <button
-            onClick={() => setActiveTab('news')}
+            onClick={() => setActiveTab('companies')}
             style={{
               flex: 1,
-              padding: '12px 20px',
+              padding: '12px',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: '600',
-              fontSize: '14px',
-              backgroundColor: activeTab === 'news' ? '#1f2937' : 'transparent',
-              color: activeTab === 'news' ? 'white' : '#666',
-              transition: 'all 0.2s'
+              backgroundColor: activeTab === 'companies' ? '#eab308' : 'transparent',
+              color: activeTab === 'companies' ? 'black' : '#666'
             }}
           >
-            📰 Manage News
+            🏢 Companies ({companies.length})
           </button>
           <button
             onClick={() => setActiveTab('marketplace')}
             style={{
               flex: 1,
-              padding: '12px 20px',
+              padding: '12px',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: '600',
-              fontSize: '14px',
-              backgroundColor: activeTab === 'marketplace' ? '#1f2937' : 'transparent',
-              color: activeTab === 'marketplace' ? 'white' : '#666',
-              transition: 'all 0.2s'
+              backgroundColor: activeTab === 'marketplace' ? '#eab308' : 'transparent',
+              color: activeTab === 'marketplace' ? 'black' : '#666'
             }}
           >
-            🛒 Marketplace
-          </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            style={{
-              flex: 1,
-              padding: '12px 20px',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '14px',
-              backgroundColor: activeTab === 'users' ? '#1f2937' : 'transparent',
-              color: activeTab === 'users' ? 'white' : '#666',
-              transition: 'all 0.2s'
-            }}
-          >
-            👥 Manage Users
+            🏪 Marketplace ({listings.length})
           </button>
         </div>
 
-        {/* News Tab */}
-        {activeTab === 'news' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, fontSize: '20px' }}>
-                News Articles ({news.length})
-              </h2>
+        {/* Companies Tab */}
+        {activeTab === 'companies' && (
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '16px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px' }}>🏢 Regional Companies</h2>
               <button
-                onClick={() => setShowAddNewsForm(!showAddNewsForm)}
+                onClick={() => setShowCompanyForm(!showCompanyForm)}
                 style={{
-                  padding: '10px 20px',
-                  backgroundColor: showAddNewsForm ? '#6b7280' : '#eab308',
-                  color: 'black',
+                  padding: '10px 16px',
+                  backgroundColor: '#eab308',
                   border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
+                  borderRadius: '6px',
                   fontWeight: '600',
-                  fontSize: '14px'
+                  cursor: 'pointer'
                 }}
               >
-                {showAddNewsForm ? 'Cancel' : '+ Add News'}
+                {showCompanyForm ? '✕ Cancel' : '+ Add Company'}
               </button>
             </div>
 
-            {/* Add News Form */}
-            {showAddNewsForm && (
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '12px',
-                padding: '24px',
-                marginBottom: '24px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            {/* Company Form */}
+            {showCompanyForm && (
+              <form onSubmit={handleCompanySubmit} style={{
+                backgroundColor: '#f9fafb',
+                padding: '16px',
+                borderRadius: '8px',
+                marginBottom: '16px'
               }}>
-                <h3 style={{ margin: '0 0 20px 0', fontSize: '18px' }}>Add News Article</h3>
-                <form onSubmit={handleAddNews}>
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
-                      Title *
-                    </label>
+                <h3 style={{ margin: '0 0 16px 0' }}>{editingCompany ? 'Edit Company' : 'Add New Company'}</h3>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Company Name *</label>
                     <input
                       type="text"
-                      value={newTitle}
-                      onChange={(e) => setNewTitle(e.target.value)}
+                      value={companyForm.name}
+                      onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })}
                       required
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
                     />
                   </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Region *</label>
+                    <select
+                      value={companyForm.region}
+                      onChange={(e) => setCompanyForm({ ...companyForm, region: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                    >
+                      <option value="">Select region</option>
+                      {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                </div>
 
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
-                      Summary
-                    </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Rating (1-5)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="5"
+                      step="0.1"
+                      value={companyForm.rating}
+                      onChange={(e) => setCompanyForm({ ...companyForm, rating: parseFloat(e.target.value) })}
+                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Website URL</label>
+                    <input
+                      type="url"
+                      value={companyForm.website_url}
+                      onChange={(e) => setCompanyForm({ ...companyForm, website_url: e.target.value })}
+                      placeholder="https://..."
+                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Description *</label>
+                  <textarea
+                    value={companyForm.description}
+                    onChange={(e) => setCompanyForm({ ...companyForm, description: e.target.value })}
+                    required
+                    rows={3}
+                    style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Pros (one per line)</label>
                     <textarea
-                      value={newSummary}
-                      onChange={(e) => setNewSummary(e.target.value)}
-                      rows={3}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box',
-                        resize: 'vertical'
-                      }}
+                      value={companyForm.pros}
+                      onChange={(e) => setCompanyForm({ ...companyForm, pros: e.target.value })}
+                      rows={4}
+                      placeholder="Good pay rates&#10;Flexible hours&#10;Modern app"
+                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
                     />
                   </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
-                        Source *
-                      </label>
-                      <input
-                        type="text"
-                        value={newSource}
-                        onChange={(e) => setNewSource(e.target.value)}
-                        required
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          boxSizing: 'border-box'
-                        }}
-                        placeholder="e.g. BBC News"
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
-                        Category *
-                      </label>
-                      <select
-                        value={newCategory}
-                        onChange={(e) => setNewCategory(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          boxSizing: 'border-box'
-                        }}
-                      >
-                        {NEWS_CATEGORIES.map((cat) => (
-                          <option key={cat.id} value={cat.id}>{cat.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
-                      Article URL *
-                    </label>
-                    <input
-                      type="url"
-                      value={newSourceUrl}
-                      onChange={(e) => setNewSourceUrl(e.target.value)}
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                      placeholder="https://..."
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Cons (one per line)</label>
+                    <textarea
+                      value={companyForm.cons}
+                      onChange={(e) => setCompanyForm({ ...companyForm, cons: e.target.value })}
+                      rows={4}
+                      placeholder="High commission&#10;Limited areas&#10;Busy periods"
+                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
                     />
                   </div>
+                </div>
 
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
-                      Image URL (optional)
-                    </label>
-                    <input
-                      type="url"
-                      value={newImageUrl}
-                      onChange={(e) => setNewImageUrl(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                      placeholder="https://..."
-                    />
-                  </div>
-
+                <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     type="submit"
-                    disabled={submittingNews}
+                    disabled={saving}
                     style={{
-                      padding: '12px 24px',
-                      backgroundColor: submittingNews ? '#9ca3af' : '#eab308',
-                      color: 'black',
+                      padding: '10px 20px',
+                      backgroundColor: '#eab308',
                       border: 'none',
                       borderRadius: '6px',
                       fontWeight: '600',
-                      cursor: submittingNews ? 'not-allowed' : 'pointer',
-                      fontSize: '14px'
+                      cursor: saving ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    {submittingNews ? 'Adding...' : 'Add Article'}
+                    {saving ? 'Saving...' : (editingCompany ? 'Update Company' : 'Add Company')}
                   </button>
-                </form>
-              </div>
+                  {editingCompany && (
+                    <button
+                      type="button"
+                      onClick={resetCompanyForm}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#f3f4f6',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+              </form>
             )}
 
-            {/* News List */}
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-            }}>
-              {loadingNews ? (
-                <p style={{ padding: '20px', textAlign: 'center' }}>Loading...</p>
-              ) : news.length === 0 ? (
-                <p style={{ padding: '40px', textAlign: 'center', color: '#666' }}>No news articles yet</p>
+            {/* Companies List */}
+            <div style={{ display: 'grid', gap: '8px' }}>
+              {companies.length === 0 ? (
+                <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No companies added yet.</p>
               ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#f9fafb' }}>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', fontWeight: '600' }}>Title</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', fontWeight: '600' }}>Source</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', fontWeight: '600' }}>Category</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', fontWeight: '600' }}>Date</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: '#666', fontWeight: '600' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {news.map((article) => (
-                      <tr key={article.id} style={{ borderTop: '1px solid #e5e7eb' }}>
-                        <td style={{ padding: '12px 16px', fontSize: '14px', maxWidth: '300px' }}>
-                          <a href={article.source_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>
-                            {article.title.length > 50 ? article.title.substring(0, 50) + '...' : article.title}
-                          </a>
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#666' }}>{article.source}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px' }}>
-                          <span style={{ backgroundColor: '#fef3c7', padding: '4px 8px', borderRadius: '4px' }}>
-                            {article.category}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#666' }}>{formatDate(article.published_at)}</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                          <button
-                            onClick={() => handleDeleteNews(article.id)}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: '#fee2e2',
-                              color: '#dc2626',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '12px'
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                companies.map(company => (
+                  <div
+                    key={company.id}
+                    style={{
+                      padding: '12px',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '12px'
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: '600' }}>{company.name}</div>
+                      <div style={{ fontSize: '13px', color: '#666' }}>
+                        {company.region} • ⭐ {company.rating}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                      <button
+                        onClick={() => editCompany(company)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '13px'
+                        }}
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        onClick={() => deleteCompany(company.id)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#dc2626',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '13px'
+                        }}
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
@@ -711,420 +651,237 @@ export default function AdminPage() {
 
         {/* Marketplace Tab */}
         {activeTab === 'marketplace' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <h2 style={{ margin: 0, fontSize: '20px' }}>
-                  Marketplace Companies ({filteredCompanies.length})
-                </h2>
-                {/* Filter buttons */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {(['all', 'cars', 'insurance'] as const).map((filter) => (
-                    <button
-                      key={filter}
-                      onClick={() => setMarketplaceFilter(filter)}
-                      style={{
-                        padding: '6px 12px',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        backgroundColor: marketplaceFilter === filter ? '#1f2937' : '#e5e7eb',
-                        color: marketplaceFilter === filter ? 'white' : '#666'
-                      }}
-                    >
-                      {filter === 'all' ? 'All' : filter === 'cars' ? '🚗 Cars' : '🛡️ Insurance'}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '16px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px' }}>🏪 Marketplace Listings</h2>
               <button
-                onClick={() => setShowAddCompanyForm(!showAddCompanyForm)}
+                onClick={() => setShowListingForm(!showListingForm)}
                 style={{
-                  padding: '10px 20px',
-                  backgroundColor: showAddCompanyForm ? '#6b7280' : '#eab308',
-                  color: 'black',
+                  padding: '10px 16px',
+                  backgroundColor: '#eab308',
                   border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
+                  borderRadius: '6px',
                   fontWeight: '600',
-                  fontSize: '14px'
+                  cursor: 'pointer'
                 }}
               >
-                {showAddCompanyForm ? 'Cancel' : '+ Add Company'}
+                {showListingForm ? '✕ Cancel' : '+ Add Listing'}
               </button>
             </div>
 
-            {/* Add Company Form */}
-            {showAddCompanyForm && (
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '12px',
-                padding: '24px',
-                marginBottom: '24px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            {/* Listing Form */}
+            {showListingForm && (
+              <form onSubmit={handleListingSubmit} style={{
+                backgroundColor: '#f9fafb',
+                padding: '16px',
+                borderRadius: '8px',
+                marginBottom: '16px'
               }}>
-                <h3 style={{ margin: '0 0 20px 0', fontSize: '18px' }}>Add New Company</h3>
-                <form onSubmit={handleAddCompany}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
-                        Company Name *
-                      </label>
-                      <input
-                        type="text"
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        required
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          boxSizing: 'border-box'
-                        }}
-                        placeholder="e.g. Acme Taxis Ltd"
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
-                        Category *
-                      </label>
-                      <select
-                        value={companyCategory}
-                        onChange={(e) => setCompanyCategory(e.target.value as 'cars' | 'insurance')}
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          boxSizing: 'border-box'
-                        }}
-                      >
-                        {COMPANY_CATEGORIES.map((cat) => (
-                          <option key={cat.id} value={cat.id}>{cat.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
-                      Description *
-                    </label>
-                    <textarea
-                      value={companyDescription}
-                      onChange={(e) => setCompanyDescription(e.target.value)}
+                <h3 style={{ margin: '0 0 16px 0' }}>{editingListing ? 'Edit Listing' : 'Add New Listing'}</h3>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Category *</label>
+                    <select
+                      value={listingForm.category}
+                      onChange={(e) => setListingForm({ ...listingForm, category: e.target.value as any })}
                       required
-                      rows={3}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box',
-                        resize: 'vertical'
-                      }}
-                      placeholder="Brief description of what the company offers..."
-                    />
+                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                    >
+                      {MARKETPLACE_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                    </select>
                   </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
-                        Website URL *
-                      </label>
-                      <input
-                        type="url"
-                        value={companyWebsite}
-                        onChange={(e) => setCompanyWebsite(e.target.value)}
-                        required
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          boxSizing: 'border-box'
-                        }}
-                        placeholder="https://www.example.com"
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
-                        Logo Emoji
-                      </label>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                        {EMOJI_OPTIONS.map((emoji) => (
-                          <button
-                            key={emoji}
-                            type="button"
-                            onClick={() => setCompanyLogo(emoji)}
-                            style={{
-                              width: '36px',
-                              height: '36px',
-                              border: companyLogo === emoji ? '2px solid #eab308' : '1px solid #d1d5db',
-                              borderRadius: '6px',
-                              backgroundColor: companyLogo === emoji ? '#fef3c7' : 'white',
-                              cursor: 'pointer',
-                              fontSize: '18px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Region</label>
+                    <select
+                      value={listingForm.region}
+                      onChange={(e) => setListingForm({ ...listingForm, region: e.target.value })}
+                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                    >
+                      {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
                   </div>
+                </div>
 
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
-                      Features (comma-separated)
-                    </label>
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Title *</label>
+                  <input
+                    type="text"
+                    value={listingForm.title}
+                    onChange={(e) => setListingForm({ ...listingForm, title: e.target.value })}
+                    required
+                    style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Description *</label>
+                  <textarea
+                    value={listingForm.description}
+                    onChange={(e) => setListingForm({ ...listingForm, description: e.target.value })}
+                    required
+                    rows={3}
+                    style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Price</label>
                     <input
                       type="text"
-                      value={companyFeatures}
-                      onChange={(e) => setCompanyFeatures(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                      placeholder="e.g. 24/7 Support, Free Delivery, Finance Available"
+                      value={listingForm.price}
+                      onChange={(e) => setListingForm({ ...listingForm, price: e.target.value })}
+                      placeholder="£99/month or Free quote"
+                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
                     />
-                    <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                      Enter features separated by commas. These will appear as badges on the company card.
-                    </p>
                   </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Contact Info</label>
+                    <input
+                      type="text"
+                      value={listingForm.contact_info}
+                      onChange={(e) => setListingForm({ ...listingForm, contact_info: e.target.value })}
+                      placeholder="Phone or email"
+                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
 
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Website URL</label>
+                    <input
+                      type="url"
+                      value={listingForm.website_url}
+                      onChange={(e) => setListingForm({ ...listingForm, website_url: e.target.value })}
+                      placeholder="https://..."
+                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Image URL</label>
+                    <input
+                      type="url"
+                      value={listingForm.image_url}
+                      onChange={(e) => setListingForm({ ...listingForm, image_url: e.target.value })}
+                      placeholder="https://..."
+                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={listingForm.featured}
+                      onChange={(e) => setListingForm({ ...listingForm, featured: e.target.checked })}
+                      style={{ width: '18px', height: '18px' }}
+                    />
+                    <span style={{ fontWeight: '500' }}>⭐ Featured listing (shows at top)</span>
+                  </label>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     type="submit"
-                    disabled={submittingCompany}
+                    disabled={saving}
                     style={{
-                      padding: '12px 24px',
-                      backgroundColor: submittingCompany ? '#9ca3af' : '#eab308',
-                      color: 'black',
+                      padding: '10px 20px',
+                      backgroundColor: '#eab308',
                       border: 'none',
                       borderRadius: '6px',
                       fontWeight: '600',
-                      cursor: submittingCompany ? 'not-allowed' : 'pointer',
-                      fontSize: '14px'
+                      cursor: saving ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    {submittingCompany ? 'Adding...' : 'Add Company'}
+                    {saving ? 'Saving...' : (editingListing ? 'Update Listing' : 'Add Listing')}
                   </button>
-                </form>
-              </div>
+                  {editingListing && (
+                    <button
+                      type="button"
+                      onClick={resetListingForm}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#f3f4f6',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+              </form>
             )}
 
-            {/* Companies List */}
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-            }}>
-              {loadingCompanies ? (
-                <p style={{ padding: '20px', textAlign: 'center' }}>Loading...</p>
-              ) : filteredCompanies.length === 0 ? (
-                <p style={{ padding: '40px', textAlign: 'center', color: '#666' }}>No companies yet</p>
+            {/* Listings List */}
+            <div style={{ display: 'grid', gap: '8px' }}>
+              {listings.length === 0 ? (
+                <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No listings added yet.</p>
               ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#f9fafb' }}>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', fontWeight: '600' }}>Company</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', fontWeight: '600' }}>Category</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', fontWeight: '600' }}>Features</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', fontWeight: '600' }}>Added</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: '#666', fontWeight: '600' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredCompanies.map((company) => (
-                      <tr key={company.id} style={{ borderTop: '1px solid #e5e7eb' }}>
-                        <td style={{ padding: '12px 16px', fontSize: '14px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ 
-                              fontSize: '24px',
-                              width: '40px',
-                              height: '40px',
-                              backgroundColor: company.category === 'cars' ? '#fef3c7' : '#dcfce7',
-                              borderRadius: '8px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}>
-                              {company.logo}
-                            </span>
-                            <div>
-                              <div style={{ fontWeight: '600' }}>{company.name}</div>
-                              <a 
-                                href={company.website} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                style={{ fontSize: '12px', color: '#2563eb', textDecoration: 'none' }}
-                              >
-                                {company.website.replace('https://', '').replace('www.', '')}
-                              </a>
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '14px' }}>
-                          <span style={{ 
-                            backgroundColor: company.category === 'cars' ? '#fef3c7' : '#dcfce7',
-                            color: company.category === 'cars' ? '#92400e' : '#166534',
-                            padding: '4px 10px', 
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            fontWeight: '500'
-                          }}>
-                            {company.category === 'cars' ? '🚗 Car Sales' : '🛡️ Insurance'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '12px', maxWidth: '200px' }}>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {company.features?.slice(0, 3).map((feature, idx) => (
-                              <span
-                                key={idx}
-                                style={{
-                                  backgroundColor: '#f3f4f6',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  fontSize: '11px'
-                                }}
-                              >
-                                {feature}
-                              </span>
-                            ))}
-                            {company.features?.length > 3 && (
-                              <span style={{ fontSize: '11px', color: '#666' }}>
-                                +{company.features.length - 3} more
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#666' }}>
-                          {formatDate(company.created_at)}
-                        </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                          <button
-                            onClick={() => handleDeleteCompany(company.id, company.name)}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: '#fee2e2',
-                              color: '#dc2626',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '12px'
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Users Tab */}
-        {activeTab === 'users' && (
-          <div>
-            <h2 style={{ margin: '0 0 20px 0', fontSize: '20px' }}>
-              Registered Users ({users.length})
-            </h2>
-
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-            }}>
-              {loadingUsers ? (
-                <p style={{ padding: '20px', textAlign: 'center' }}>Loading...</p>
-              ) : users.length === 0 ? (
-                <p style={{ padding: '40px', textAlign: 'center', color: '#666' }}>No users yet</p>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#f9fafb' }}>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', fontWeight: '600' }}>Name</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', fontWeight: '600' }}>Region</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', fontWeight: '600' }}>Badge #</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: '#666', fontWeight: '600' }}>Joined</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: '#666', fontWeight: '600' }}>Admin</th>
-                      <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: '#666', fontWeight: '600' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((u) => (
-                      <tr key={u.id} style={{ borderTop: '1px solid #e5e7eb' }}>
-                        <td style={{ padding: '12px 16px', fontSize: '14px' }}>
-                          <div style={{ fontWeight: '500' }}>{u.name || 'Not set'}</div>
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#666' }}>{u.region || '-'}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#666' }}>{u.badge_number || '-'}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#666' }}>
-                          {u.created_at ? formatDate(u.created_at) : '-'}
-                        </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                          {u.is_admin ? (
-                            <span style={{ 
-                              backgroundColor: '#dcfce7', 
-                              color: '#16a34a',
-                              padding: '4px 8px', 
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              fontWeight: '600'
-                            }}>
-                              ✓ Admin
-                            </span>
-                          ) : (
-                            <span style={{ 
-                              backgroundColor: '#f3f4f6', 
-                              color: '#666',
-                              padding: '4px 8px', 
-                              borderRadius: '4px',
-                              fontSize: '12px'
-                            }}>
-                              User
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                          <button
-                            onClick={() => toggleAdminStatus(u.id, u.is_admin)}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: u.is_admin ? '#fee2e2' : '#dcfce7',
-                              color: u.is_admin ? '#dc2626' : '#16a34a',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '12px'
-                            }}
-                          >
-                            {u.is_admin ? 'Remove Admin' : 'Make Admin'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                listings.map(listing => (
+                  <div
+                    key={listing.id}
+                    style={{
+                      padding: '12px',
+                      backgroundColor: listing.featured ? '#fef3c7' : '#f9fafb',
+                      borderRadius: '8px',
+                      border: `1px solid ${listing.featured ? '#eab308' : '#e5e7eb'}`,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '12px'
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: '600' }}>
+                        {listing.featured && '⭐ '}{listing.title}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#666' }}>
+                        {MARKETPLACE_CATEGORIES.find(c => c.id === listing.category)?.label} • {listing.region}
+                        {listing.price && ` • ${listing.price}`}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                      <button
+                        onClick={() => editListing(listing)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '13px'
+                        }}
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        onClick={() => deleteListing(listing.id)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#dc2626',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '13px'
+                        }}
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
