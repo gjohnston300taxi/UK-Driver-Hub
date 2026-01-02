@@ -26,9 +26,7 @@ const CATEGORIES = [
   { id: 'all', label: 'All', icon: '🏪' },
   { id: 'insurance', label: 'Insurance', icon: '🛡️' },
   { id: 'cars', label: 'Cars for Sale', icon: '🚗' },
-  { id: 'parts', label: 'Car Parts', icon: '🔧' },
-  { id: 'accessories', label: 'Accessories', icon: '📱' },
-  { id: 'services', label: 'Services', icon: '🔨' }
+  { id: 'parts', label: 'Car Parts', icon: '🔧' }
 ]
 
 export default function MarketplacePage() {
@@ -58,6 +56,7 @@ export default function MarketplacePage() {
     const { data, error } = await supabase
       .from('marketplace_listings')
       .select('*')
+      .in('category', ['insurance', 'cars', 'parts'])
       .order('featured', { ascending: false })
       .order('created_at', { ascending: false })
     
@@ -88,8 +87,6 @@ export default function MarketplacePage() {
       case 'insurance': return '#dcfce7'
       case 'cars': return '#e0e7ff'
       case 'parts': return '#dbeafe'
-      case 'accessories': return '#fef3c7'
-      case 'services': return '#fce7f3'
       default: return '#f3f4f6'
     }
   }
