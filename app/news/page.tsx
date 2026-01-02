@@ -22,14 +22,11 @@ export default function NewsPage() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [news, setNews] = useState<NewsItem[]>([])
+  const [loadingNews, setLoadingNews] = useState(true)
 
   useEffect(() => {
     loadUser()
   }, [])
-
-  useEffect(() => {
-    if (user) loadNews()
-  }, [user])
 
   const loadUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -39,14 +36,23 @@ export default function NewsPage() {
     if (!data?.name || !data?.region) { window.location.href = '/onboarding'; return }
     setProfile(data)
     setLoading(false)
+    loadNews()
   }
 
   const loadNews = async () => {
-    const { data } = await supabase
-      .from('news')
-      .select('*')
-      .order('created_at', { ascending: false })
-    setNews(data || [])
+    try {
+      const { data, error } = await supabase
+        .from('news')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      if (!error && data) {
+        setNews(data)
+      }
+    } catch (err) {
+      console.error('Error loading news:', err)
+    }
+    setLoadingNews(false)
   }
 
   const formatDate = (dateString: string) => {
@@ -61,6 +67,7 @@ export default function NewsPage() {
   }
 
   const getPreview = (content: string, maxLength: number = 150) => {
+    if (!content) return ''
     if (content.length <= maxLength) return content
     return content.substring(0, maxLength).trim() + '...'
   }
@@ -78,7 +85,11 @@ export default function NewsPage() {
       <main style={{ maxWidth: '680px', margin: '0 auto', padding: '16px' }}>
         <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 16px 0' }}>📢 Industry News</h2>
 
-        {news.length === 0 ? (
+        {loadingNews ? (
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '40px 20px', textAlign: 'center', color: '#666', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            Loading news...
+          </div>
+        ) : !news || news.length === 0 ? (
           <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '40px 20px', textAlign: 'center', color: '#666', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
             No news articles yet. Check back soon!
           </div>
@@ -101,7 +112,7 @@ export default function NewsPage() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                   <span style={{ padding: '4px 10px', backgroundColor: '#eab308', color: 'black', borderRadius: '12px', fontSize: '12px', fontWeight: '500' }}>
-                    {item.category}
+                    {item.category || 'News'}
                   </span>
                   <span style={{ fontSize: '13px', color: '#999' }}>{formatDate(item.created_at)}</span>
                 </div>
