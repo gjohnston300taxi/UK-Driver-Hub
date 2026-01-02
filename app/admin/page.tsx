@@ -283,7 +283,7 @@ export default function AdminPage() {
   const editListing = (listing: MarketplaceListing) => {
     setEditingListing(listing)
     setListingForm({
-      category: listing.category,
+      category: listing.category as 'insurance' | 'cars' | 'parts' | 'accessories' | 'services',
       title: listing.title,
       description: listing.description,
       price: listing.price || '',
