@@ -1,6 +1,7 @@
 import './globals.css'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import CookieConsent from '@/components/CookieConsent'
 
 export const metadata = {
   title: 'UK Driver Hub',
@@ -26,6 +27,7 @@ export default function RootLayout({
           {children}
         </main>
         <Footer />
+        <CookieConsent />
       </body>
     </html>
   )
