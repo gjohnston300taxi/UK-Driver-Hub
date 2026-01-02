@@ -8,6 +8,24 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+interface Profile {
+  id: string
+  name: string
+  region: string
+  email?: string
+  is_admin: boolean
+  created_at: string
+}
+
+interface NewsItem {
+  id: string
+  title: string
+  content: string
+  category: string
+  created_at: string
+  author_id: string
+}
+
 interface Company {
   id: string
   name: string
@@ -51,6 +69,17 @@ const REGIONS = [
   'National 🇬🇧'
 ]
 
+const NEWS_CATEGORIES = [
+  'Industry News',
+  'Regulation Update',
+  'Technology',
+  'Business Tips',
+  'Safety',
+  'Local News',
+  'Events',
+  'Announcements'
+]
+
 const MARKETPLACE_CATEGORIES = [
   { id: 'insurance', label: '🛡️ Insurance' },
   { id: 'cars', label: '🚗 Cars for Sale' },
@@ -63,7 +92,20 @@ export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'companies' | 'marketplace'>('companies')
+  const [activeTab, setActiveTab] = useState<'users' | 'news' | 'companies' | 'marketplace'>('users')
+  
+  // Users state
+  const [users, setUsers] = useState<Profile[]>([])
+  
+  // News state
+  const [news, setNews] = useState<NewsItem[]>([])
+  const [showNewsForm, setShowNewsForm] = useState(false)
+  const [editingNews, setEditingNews] = useState<NewsItem | null>(null)
+  const [newsForm, setNewsForm] = useState({
+    title: '',
+    content: '',
+    category: 'Industry News'
+  })
   
   // Companies state
   const [companies, setCompanies] = useState<Company[]>([])
@@ -121,11 +163,35 @@ export default function AdminPage() {
     
     if (profile?.is_admin === true) {
       setIsAdmin(true)
+      loadUsers()
+      loadNews()
       loadCompanies()
       loadListings()
     }
     
     setLoading(false)
+  }
+
+  const loadUsers = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('name', { ascending: true })
+
+    if (!error && data) {
+      setUsers(data)
+    }
+  }
+
+  const loadNews = async () => {
+    const { data, error } = await supabase
+      .from('news')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (!error && data) {
+      setNews(data)
+    }
   }
 
   const loadCompanies = async () => {
@@ -150,6 +216,95 @@ export default function AdminPage() {
     if (!error && data) {
       setListings(data)
     }
+  }
+
+  // User functions
+  const toggleAdmin = async (userId: string, currentStatus: boolean) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_admin: !currentStatus })
+      .eq('id', userId)
+
+    if (error) {
+      setMessage('Error: ' + error.message)
+    } else {
+      setMessage(currentStatus ? 'Admin access removed' : 'Admin access granted')
+      loadUsers()
+    }
+  }
+
+  // News functions
+  const handleNewsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setMessage('')
+
+    const newsData = {
+      title: newsForm.title.trim(),
+      content: newsForm.content.trim(),
+      category: newsForm.category,
+      author_id: user.id
+    }
+
+    let error
+    if (editingNews) {
+      const { error: updateError } = await supabase
+        .from('news')
+        .update(newsData)
+        .eq('id', editingNews.id)
+      error = updateError
+    } else {
+      const { error: insertError } = await supabase
+        .from('news')
+        .insert([newsData])
+      error = insertError
+    }
+
+    if (error) {
+      setMessage('Error: ' + error.message)
+    } else {
+      setMessage(editingNews ? 'News updated!' : 'News published!')
+      resetNewsForm()
+      loadNews()
+    }
+
+    setSaving(false)
+  }
+
+  const editNews = (item: NewsItem) => {
+    setEditingNews(item)
+    setNewsForm({
+      title: item.title,
+      content: item.content,
+      category: item.category
+    })
+    setShowNewsForm(true)
+  }
+
+  const deleteNews = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this news article?')) return
+
+    const { error } = await supabase
+      .from('news')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      setMessage('Error: ' + error.message)
+    } else {
+      setMessage('News deleted!')
+      loadNews()
+    }
+  }
+
+  const resetNewsForm = () => {
+    setNewsForm({
+      title: '',
+      content: '',
+      category: 'Industry News'
+    })
+    setEditingNews(null)
+    setShowNewsForm(false)
   }
 
   // Company functions
@@ -328,6 +483,11 @@ export default function AdminPage() {
     setShowListingForm(false)
   }
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
+
   if (loading) {
     return (
       <div style={{ 
@@ -376,7 +536,7 @@ export default function AdminPage() {
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
         }}>
           <h1 style={{ margin: '0 0 8px 0', fontSize: '24px' }}>⚙️ Admin Panel</h1>
-          <p style={{ margin: 0, color: '#666' }}>Manage companies and marketplace listings</p>
+          <p style={{ margin: 0, color: '#666' }}>Manage users, news, companies and marketplace</p>
         </div>
 
         {/* Message */}
@@ -400,17 +560,52 @@ export default function AdminPage() {
           padding: '4px',
           marginBottom: '16px',
           display: 'flex',
+          flexWrap: 'wrap',
+          gap: '4px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
         }}>
           <button
-            onClick={() => setActiveTab('companies')}
+            onClick={() => setActiveTab('users')}
             style={{
-              flex: 1,
-              padding: '12px',
+              flex: '1 1 auto',
+              padding: '10px 8px',
               border: 'none',
               borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: '600',
+              fontSize: '14px',
+              backgroundColor: activeTab === 'users' ? '#eab308' : 'transparent',
+              color: activeTab === 'users' ? 'black' : '#666'
+            }}
+          >
+            👥 Users ({users.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('news')}
+            style={{
+              flex: '1 1 auto',
+              padding: '10px 8px',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '14px',
+              backgroundColor: activeTab === 'news' ? '#eab308' : 'transparent',
+              color: activeTab === 'news' ? 'black' : '#666'
+            }}
+          >
+            📰 News ({news.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('companies')}
+            style={{
+              flex: '1 1 auto',
+              padding: '10px 8px',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '14px',
               backgroundColor: activeTab === 'companies' ? '#eab308' : 'transparent',
               color: activeTab === 'companies' ? 'black' : '#666'
             }}
@@ -420,12 +615,13 @@ export default function AdminPage() {
           <button
             onClick={() => setActiveTab('marketplace')}
             style={{
-              flex: 1,
-              padding: '12px',
+              flex: '1 1 auto',
+              padding: '10px 8px',
               border: 'none',
               borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: '600',
+              fontSize: '14px',
               backgroundColor: activeTab === 'marketplace' ? '#eab308' : 'transparent',
               color: activeTab === 'marketplace' ? 'black' : '#666'
             }}
@@ -433,6 +629,234 @@ export default function AdminPage() {
             🏪 Marketplace ({listings.length})
           </button>
         </div>
+
+        {/* Users Tab */}
+        {activeTab === 'users' && (
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '16px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>👥 Registered Users</h2>
+            <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}>
+              Toggle admin access for users. Admins can access this panel and manage content.
+            </p>
+            
+            <div style={{ display: 'grid', gap: '8px' }}>
+              {users.length === 0 ? (
+                <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No users found.</p>
+              ) : (
+                users.map(profile => (
+                  <div
+                    key={profile.id}
+                    style={{
+                      padding: '12px',
+                      backgroundColor: profile.is_admin ? '#fef3c7' : '#f9fafb',
+                      borderRadius: '8px',
+                      border: `1px solid ${profile.is_admin ? '#eab308' : '#e5e7eb'}`,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '12px'
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        {profile.name || 'No name'}
+                        {profile.is_admin && <span style={{ fontSize: '12px', backgroundColor: '#eab308', padding: '2px 8px', borderRadius: '4px' }}>Admin</span>}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#666' }}>
+                        {profile.region || 'No region'}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleAdmin(profile.id, profile.is_admin)}
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: profile.is_admin ? '#dc2626' : '#16a34a',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        flexShrink: 0
+                      }}
+                    >
+                      {profile.is_admin ? 'Remove Admin' : 'Make Admin'}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* News Tab */}
+        {activeTab === 'news' && (
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '16px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px' }}>📰 News Articles</h2>
+              <button
+                onClick={() => setShowNewsForm(!showNewsForm)}
+                style={{
+                  padding: '10px 16px',
+                  backgroundColor: '#eab308',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                {showNewsForm ? '✕ Cancel' : '+ Add News'}
+              </button>
+            </div>
+
+            {/* News Form */}
+            {showNewsForm && (
+              <form onSubmit={handleNewsSubmit} style={{
+                backgroundColor: '#f9fafb',
+                padding: '16px',
+                borderRadius: '8px',
+                marginBottom: '16px'
+              }}>
+                <h3 style={{ margin: '0 0 16px 0' }}>{editingNews ? 'Edit News Article' : 'Add News Article'}</h3>
+                
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Category *</label>
+                  <select
+                    value={newsForm.category}
+                    onChange={(e) => setNewsForm({ ...newsForm, category: e.target.value })}
+                    required
+                    style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                  >
+                    {NEWS_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Title *</label>
+                  <input
+                    type="text"
+                    value={newsForm.title}
+                    onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })}
+                    required
+                    style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Content *</label>
+                  <textarea
+                    value={newsForm.content}
+                    onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
+                    required
+                    rows={8}
+                    style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#eab308',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontWeight: '600',
+                      cursor: saving ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {saving ? 'Saving...' : (editingNews ? 'Update News' : 'Publish News')}
+                  </button>
+                  {editingNews && (
+                    <button
+                      type="button"
+                      onClick={resetNewsForm}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#f3f4f6',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
+
+            {/* News List */}
+            <div style={{ display: 'grid', gap: '8px' }}>
+              {news.length === 0 ? (
+                <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No news articles yet.</p>
+              ) : (
+                news.map(item => (
+                  <div
+                    key={item.id}
+                    style={{
+                      padding: '12px',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '12px'
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: '600' }}>{item.title}</div>
+                      <div style={{ fontSize: '13px', color: '#666' }}>
+                        {item.category} • {formatDate(item.created_at)}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                      <button
+                        onClick={() => editNews(item)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '13px'
+                        }}
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        onClick={() => deleteNews(item.id)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#dc2626',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '13px'
+                        }}
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Companies Tab */}
         {activeTab === 'companies' && (
@@ -442,7 +866,7 @@ export default function AdminPage() {
             padding: '16px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
               <h2 style={{ margin: 0, fontSize: '18px' }}>🏢 Regional Companies</h2>
               <button
                 onClick={() => setShowCompanyForm(!showCompanyForm)}
@@ -458,6 +882,10 @@ export default function AdminPage() {
                 {showCompanyForm ? '✕ Cancel' : '+ Add Company'}
               </button>
             </div>
+
+            <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}>
+              These companies appear in Resources → "Who to Work For"
+            </p>
 
             {/* Company Form */}
             {showCompanyForm && (
@@ -590,7 +1018,7 @@ export default function AdminPage() {
             {/* Companies List */}
             <div style={{ display: 'grid', gap: '8px' }}>
               {companies.length === 0 ? (
-                <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No companies added yet.</p>
+                <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No companies added yet. Add companies here and they will appear in Resources.</p>
               ) : (
                 companies.map(company => (
                   <div
@@ -657,7 +1085,7 @@ export default function AdminPage() {
             padding: '16px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
               <h2 style={{ margin: 0, fontSize: '18px' }}>🏪 Marketplace Listings</h2>
               <button
                 onClick={() => setShowListingForm(!showListingForm)}
@@ -674,6 +1102,10 @@ export default function AdminPage() {
               </button>
             </div>
 
+            <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}>
+              These listings appear in the Marketplace page
+            </p>
+
             {/* Listing Form */}
             {showListingForm && (
               <form onSubmit={handleListingSubmit} style={{
@@ -689,7 +1121,7 @@ export default function AdminPage() {
                     <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Category *</label>
                     <select
                       value={listingForm.category}
-                      onChange={(e) => setListingForm({ ...listingForm, category: e.target.value as any })}
+                      onChange={(e) => setListingForm({ ...listingForm, category: e.target.value })}
                       required
                       style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
                     >
@@ -825,7 +1257,7 @@ export default function AdminPage() {
             {/* Listings List */}
             <div style={{ display: 'grid', gap: '8px' }}>
               {listings.length === 0 ? (
-                <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No listings added yet.</p>
+                <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No listings added yet. Add listings here and they will appear in Marketplace.</p>
               ) : (
                 listings.map(listing => (
                   <div
