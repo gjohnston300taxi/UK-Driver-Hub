@@ -11,10 +11,11 @@ const supabase = createClient(
 interface NewsItem {
   id: string
   title: string
-  content: string
+  summary: string
+  source: string
+  source_url: string
   category: string
   created_at: string
-  author_id: string
 }
 
 export default function NewsPage() {
@@ -66,10 +67,10 @@ export default function NewsPage() {
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
   }
 
-  const getPreview = (content: string, maxLength: number = 150) => {
-    if (!content) return ''
-    if (content.length <= maxLength) return content
-    return content.substring(0, maxLength).trim() + '...'
+  const getPreview = (text: string, maxLength: number = 150) => {
+    if (!text) return ''
+    if (text.length <= maxLength) return text
+    return text.substring(0, maxLength).trim() + '...'
   }
 
   if (loading) {
@@ -110,17 +111,22 @@ export default function NewsPage() {
                   border: '1px solid #e5e7eb'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                   <span style={{ padding: '4px 10px', backgroundColor: '#eab308', color: 'black', borderRadius: '12px', fontSize: '12px', fontWeight: '500' }}>
                     {item.category || 'News'}
                   </span>
                   <span style={{ fontSize: '13px', color: '#999' }}>{formatDate(item.created_at)}</span>
                 </div>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: '600', lineHeight: '1.3', color: '#111' }}>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600', lineHeight: '1.3', color: '#111' }}>
                   {item.title}
                 </h3>
+                {item.source && (
+                  <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#888' }}>
+                    📰 {item.source}
+                  </p>
+                )}
                 <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#666', lineHeight: '1.5' }}>
-                  {getPreview(item.content)}
+                  {getPreview(item.summary)}
                 </p>
                 <span style={{ fontSize: '14px', color: '#eab308', fontWeight: '500' }}>
                   Read more →

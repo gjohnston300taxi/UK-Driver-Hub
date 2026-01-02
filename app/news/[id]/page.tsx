@@ -12,10 +12,11 @@ const supabase = createClient(
 interface NewsItem {
   id: string
   title: string
-  content: string
+  summary: string
+  source: string
+  source_url: string
   category: string
   created_at: string
-  author_id: string
 }
 
 export default function NewsArticlePage() {
@@ -158,6 +159,20 @@ export default function NewsArticlePage() {
               {article.title}
             </h1>
 
+            {/* Source */}
+            {article.source && (
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666', 
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span>📰 Source: <strong>{article.source}</strong></span>
+              </div>
+            )}
+
             {/* Divider */}
             <div style={{ 
               height: '1px', 
@@ -165,15 +180,38 @@ export default function NewsArticlePage() {
               margin: '20px 0' 
             }} />
 
-            {/* Content */}
+            {/* Content/Summary */}
             <div style={{ 
               fontSize: '16px', 
               lineHeight: '1.8', 
               color: '#333',
               whiteSpace: 'pre-wrap'
             }}>
-              {article.content}
+              {article.summary}
             </div>
+
+            {/* Read Original Article Button */}
+            {article.source_url && (
+              <div style={{ marginTop: '24px' }}>
+                <a
+                  href={article.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-block',
+                    padding: '12px 24px',
+                    backgroundColor: '#eab308',
+                    color: 'black',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    fontSize: '15px',
+                    fontWeight: '600'
+                  }}
+                >
+                  📖 Read Full Article on {article.source}
+                </a>
+              </div>
+            )}
 
             {/* Share Section */}
             <div style={{ 
@@ -184,9 +222,9 @@ export default function NewsArticlePage() {
               <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#666' }}>
                 Share this article:
               </p>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <a
-                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(article.source_url || '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
@@ -202,7 +240,7 @@ export default function NewsArticlePage() {
                   Twitter
                 </a>
                 <a
-                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(article.source_url || '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
@@ -218,7 +256,7 @@ export default function NewsArticlePage() {
                   Facebook
                 </a>
                 <a
-                  href={`https://wa.me/?text=${encodeURIComponent(article.title + ' ' + (typeof window !== 'undefined' ? window.location.href : ''))}`}
+                  href={`https://wa.me/?text=${encodeURIComponent(article.title + ' ' + (article.source_url || ''))}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
