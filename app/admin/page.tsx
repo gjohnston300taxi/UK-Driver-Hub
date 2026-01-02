@@ -22,7 +22,7 @@ interface Company {
 
 interface MarketplaceListing {
   id: string
-  category: 'insurance' | 'cars' | 'parts' | 'accessories' | 'services'
+  category: string
   title: string
   description: string
   price: string
@@ -84,7 +84,7 @@ export default function AdminPage() {
   const [showListingForm, setShowListingForm] = useState(false)
   const [editingListing, setEditingListing] = useState<MarketplaceListing | null>(null)
   const [listingForm, setListingForm] = useState({
-    category: 'insurance' as const,
+    category: 'insurance',
     title: '',
     description: '',
     price: '',
@@ -283,7 +283,7 @@ export default function AdminPage() {
   const editListing = (listing: MarketplaceListing) => {
     setEditingListing(listing)
     setListingForm({
-      category: listing.category as 'insurance' | 'cars' | 'parts' | 'accessories' | 'services',
+      category: listing.category,
       title: listing.title,
       description: listing.description,
       price: listing.price || '',
