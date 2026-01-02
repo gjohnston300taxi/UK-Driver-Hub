@@ -60,6 +60,11 @@ export default function NewsPage() {
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
   }
 
+  const getPreview = (content: string, maxLength: number = 150) => {
+    if (content.length <= maxLength) return content
+    return content.substring(0, maxLength).trim() + '...'
+  }
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
@@ -80,14 +85,36 @@ export default function NewsPage() {
         ) : (
           <div style={{ display: 'grid', gap: '16px' }}>
             {news.map((item) => (
-              <div key={item.id} style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              <a
+                key={item.id}
+                href={`/news/${item.id}`}
+                style={{
+                  display: 'block',
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  padding: '20px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  border: '1px solid #e5e7eb'
+                }}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                  <span style={{ padding: '4px 10px', backgroundColor: '#eab308', color: 'black', borderRadius: '12px', fontSize: '12px', fontWeight: '500' }}>{item.category}</span>
+                  <span style={{ padding: '4px 10px', backgroundColor: '#eab308', color: 'black', borderRadius: '12px', fontSize: '12px', fontWeight: '500' }}>
+                    {item.category}
+                  </span>
                   <span style={{ fontSize: '13px', color: '#999' }}>{formatDate(item.created_at)}</span>
                 </div>
-                <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: '600', lineHeight: '1.3' }}>{item.title}</h3>
-                <p style={{ margin: 0, fontSize: '15px', color: '#444', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{item.content}</p>
-              </div>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: '600', lineHeight: '1.3', color: '#111' }}>
+                  {item.title}
+                </h3>
+                <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#666', lineHeight: '1.5' }}>
+                  {getPreview(item.content)}
+                </p>
+                <span style={{ fontSize: '14px', color: '#eab308', fontWeight: '500' }}>
+                  Read more →
+                </span>
+              </a>
             ))}
           </div>
         )}
