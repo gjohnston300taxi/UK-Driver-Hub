@@ -130,7 +130,8 @@ export default function FeedPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [posting, setPosting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<string>('')
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   
   // Comment state
   const [expandedComments, setExpandedComments] = useState<{ [postId: string]: boolean }>({})
@@ -284,7 +285,8 @@ export default function FeedPage() {
     setSelectedImage(null)
     setImagePreview(null)
     setUploadProgress('')
-    if (fileInputRef.current) fileInputRef.current.value = ''
+    if (galleryInputRef.current) galleryInputRef.current.value = ''
+    if (cameraInputRef.current) cameraInputRef.current.value = ''
   }
 
   const uploadImage = async (file: File): Promise<string | null> => {
@@ -668,16 +670,26 @@ export default function FeedPage() {
           )}
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Hidden file inputs */}
             <input
               type="file"
-              ref={fileInputRef}
+              ref={galleryInputRef}
+              onChange={handleImageSelect}
+              accept="image/*"
+              style={{ display: 'none' }}
+            />
+            <input
+              type="file"
+              ref={cameraInputRef}
               onChange={handleImageSelect}
               accept="image/*"
               capture="environment"
               style={{ display: 'none' }}
             />
+            
+            {/* Gallery button - opens photo library */}
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => galleryInputRef.current?.click()}
               disabled={posting}
               style={{
                 padding: '10px 14px',
@@ -691,8 +703,28 @@ export default function FeedPage() {
                 gap: '6px'
               }}
             >
-              📷 Photo
+              🖼️ Gallery
             </button>
+            
+            {/* Camera button - opens camera */}
+            <button
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={posting}
+              style={{
+                padding: '10px 14px',
+                backgroundColor: '#f3f4f6',
+                border: '1px solid #e5e7eb',
+                borderRadius: '6px',
+                cursor: posting ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              📷 Camera
+            </button>
+            
             <button
               onClick={handleCreatePost}
               disabled={posting || !newPostContent.trim()}
