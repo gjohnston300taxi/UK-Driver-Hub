@@ -11,8 +11,8 @@ const supabase = createClient(
 interface Profile {
   id: string
   name: string
+  email: string
   region: string
-  email?: string
   is_admin: boolean
   created_at: string
 }
@@ -20,10 +20,11 @@ interface Profile {
 interface NewsItem {
   id: string
   title: string
-  content: string
+  summary: string
+  source: string
+  source_url: string
   category: string
   created_at: string
-  author_id: string
 }
 
 interface Company {
@@ -35,7 +36,6 @@ interface Company {
   website_url: string
   pros: string[]
   cons: string[]
-  created_at: string
 }
 
 interface MarketplaceListing {
@@ -46,1279 +46,629 @@ interface MarketplaceListing {
   price: string
   contact_info: string
   website_url: string
-  image_url: string
   region: string
   featured: boolean
   created_at: string
 }
 
-const REGIONS = [
-  'Scotland 🏴󠁧󠁢󠁳󠁣󠁴󠁿',
-  'Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿',
-  'Northern Ireland 🇬🇧',
-  'London 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  'North East England 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  'North West England 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  'Yorkshire & Humber 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  'East Midlands 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  'West Midlands 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  'East England 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  'South East England 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  'South West England 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  'Republic of Ireland 🇮🇪',
-  'National 🇬🇧'
-]
+interface Feedback {
+  id: string
+  user_id: string
+  user_name: string
+  user_region: string
+  likes: string
+  dislikes: string
+  features: string
+  status: string
+  created_at: string
+}
 
 const NEWS_CATEGORIES = [
-  'Industry News',
-  'Regulation Update',
-  'Technology',
-  'Business Tips',
-  'Safety',
-  'Local News',
-  'Events',
-  'Announcements'
+  'Industry News', 'Regulation Update', 'Technology', 'Business Tips', 
+  'Safety', 'Local News', 'Events', 'Announcements'
 ]
 
-const MARKETPLACE_CATEGORIES = [
-  { id: 'insurance', label: '🛡️ Insurance' },
-  { id: 'cars', label: '🚗 Cars for Sale' },
-  { id: 'parts', label: '🔧 Car Parts' },
-  { id: 'accessories', label: '📱 Accessories' },
-  { id: 'services', label: '🔨 Services' }
+const REGIONS = [
+  'National 🇬🇧', 'Scotland 🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿', 'Northern Ireland 🇬🇧',
+  'London 🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'North East England 🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'North West England 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'Yorkshire & Humber 🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'East Midlands 🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'West Midlands 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'East England 🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'South East England 🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'South West England 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'Republic of Ireland 🇮🇪'
 ]
+
+const MARKETPLACE_CATEGORIES = ['insurance', 'cars', 'parts']
+
+const FEEDBACK_STATUSES = ['new', 'read', 'in-progress', 'done']
 
 export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'users' | 'news' | 'companies' | 'marketplace'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'news' | 'companies' | 'marketplace' | 'feedback'>('users')
   
-  // Users state
+  // Data states
   const [users, setUsers] = useState<Profile[]>([])
-  
-  // News state
   const [news, setNews] = useState<NewsItem[]>([])
-  const [showNewsForm, setShowNewsForm] = useState(false)
-  const [editingNews, setEditingNews] = useState<NewsItem | null>(null)
-  const [newsForm, setNewsForm] = useState({
-    title: '',
-    content: '',
-    category: 'Industry News'
-  })
-  
-  // Companies state
   const [companies, setCompanies] = useState<Company[]>([])
-  const [showCompanyForm, setShowCompanyForm] = useState(false)
-  const [editingCompany, setEditingCompany] = useState<Company | null>(null)
-  const [companyForm, setCompanyForm] = useState({
-    name: '',
-    region: '',
-    rating: 4.0,
-    description: '',
-    website_url: '',
-    pros: '',
-    cons: ''
-  })
-  
-  // Marketplace state
   const [listings, setListings] = useState<MarketplaceListing[]>([])
+  const [feedback, setFeedback] = useState<Feedback[]>([])
+  
+  // Form states
+  const [showNewsForm, setShowNewsForm] = useState(false)
+  const [showCompanyForm, setShowCompanyForm] = useState(false)
   const [showListingForm, setShowListingForm] = useState(false)
+  const [editingNews, setEditingNews] = useState<NewsItem | null>(null)
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null)
   const [editingListing, setEditingListing] = useState<MarketplaceListing | null>(null)
-  const [listingForm, setListingForm] = useState({
-    category: 'insurance',
-    title: '',
-    description: '',
-    price: '',
-    contact_info: '',
-    website_url: '',
-    image_url: '',
-    region: 'National 🇬🇧',
-    featured: false
-  })
-
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
 
   useEffect(() => {
     checkAdmin()
   }, [])
 
+  useEffect(() => {
+    if (isAdmin) {
+      loadUsers()
+      loadNews()
+      loadCompanies()
+      loadListings()
+      loadFeedback()
+    }
+  }, [isAdmin])
+
   const checkAdmin = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      window.location.href = '/signin'
-      return
-    }
-
+    if (!user) { window.location.href = '/signin'; return }
     setUser(user)
-    
-    // Check if user is admin in the database
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('is_admin')
       .eq('id', user.id)
       .single()
-    
-    if (profile?.is_admin === true) {
-      setIsAdmin(true)
-      loadUsers()
-      loadNews()
-      loadCompanies()
-      loadListings()
+
+    if (!profile?.is_admin) {
+      window.location.href = '/feed'
+      return
     }
-    
+
+    setIsAdmin(true)
     setLoading(false)
   }
 
   const loadUsers = async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('name', { ascending: true })
-
-    if (!error && data) {
-      setUsers(data)
-    }
+    const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
+    setUsers(data || [])
   }
 
   const loadNews = async () => {
-    const { data, error } = await supabase
-      .from('news')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (!error && data) {
-      setNews(data)
-    }
+    const { data } = await supabase.from('news').select('*').order('created_at', { ascending: false })
+    setNews(data || [])
   }
 
   const loadCompanies = async () => {
-    const { data, error } = await supabase
-      .from('companies')
-      .select('*')
-      .order('region', { ascending: true })
-      .order('name', { ascending: true })
-
-    if (!error && data) {
-      setCompanies(data)
-    }
+    const { data } = await supabase.from('companies').select('*').order('region').order('name')
+    setCompanies(data || [])
   }
 
   const loadListings = async () => {
-    const { data, error } = await supabase
-      .from('marketplace_listings')
-      .select('*')
-      .order('featured', { ascending: false })
-      .order('created_at', { ascending: false })
-
-    if (!error && data) {
-      setListings(data)
-    }
+    const { data } = await supabase.from('marketplace_listings').select('*').order('created_at', { ascending: false })
+    setListings(data || [])
   }
 
-  // User functions
+  const loadFeedback = async () => {
+    const { data } = await supabase.from('feedback').select('*').order('created_at', { ascending: false })
+    setFeedback(data || [])
+  }
+
   const toggleAdmin = async (userId: string, currentStatus: boolean) => {
     const { error } = await supabase
       .from('profiles')
       .update({ is_admin: !currentStatus })
       .eq('id', userId)
-
-    if (error) {
-      setMessage('Error: ' + error.message)
-    } else {
-      setMessage(currentStatus ? 'Admin access removed' : 'Admin access granted')
-      loadUsers()
-    }
-  }
-
-  // News functions
-  const handleNewsSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
-    setMessage('')
-
-    const newsData = {
-      title: newsForm.title.trim(),
-      content: newsForm.content.trim(),
-      category: newsForm.category,
-      author_id: user.id
-    }
-
-    let error
-    if (editingNews) {
-      const { error: updateError } = await supabase
-        .from('news')
-        .update(newsData)
-        .eq('id', editingNews.id)
-      error = updateError
-    } else {
-      const { error: insertError } = await supabase
-        .from('news')
-        .insert([newsData])
-      error = insertError
-    }
-
-    if (error) {
-      setMessage('Error: ' + error.message)
-    } else {
-      setMessage(editingNews ? 'News updated!' : 'News published!')
-      resetNewsForm()
-      loadNews()
-    }
-
-    setSaving(false)
-  }
-
-  const editNews = (item: NewsItem) => {
-    setEditingNews(item)
-    setNewsForm({
-      title: item.title,
-      content: item.content,
-      category: item.category
-    })
-    setShowNewsForm(true)
+    
+    if (!error) loadUsers()
   }
 
   const deleteNews = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this news article?')) return
-
-    const { error } = await supabase
-      .from('news')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      setMessage('Error: ' + error.message)
-    } else {
-      setMessage('News deleted!')
-      loadNews()
-    }
-  }
-
-  const resetNewsForm = () => {
-    setNewsForm({
-      title: '',
-      content: '',
-      category: 'Industry News'
-    })
-    setEditingNews(null)
-    setShowNewsForm(false)
-  }
-
-  // Company functions
-  const handleCompanySubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
-    setMessage('')
-
-    const companyData = {
-      name: companyForm.name.trim(),
-      region: companyForm.region,
-      rating: companyForm.rating,
-      description: companyForm.description.trim(),
-      website_url: companyForm.website_url.trim(),
-      pros: companyForm.pros.split('\n').filter(p => p.trim()),
-      cons: companyForm.cons.split('\n').filter(c => c.trim())
-    }
-
-    let error
-    if (editingCompany) {
-      const { error: updateError } = await supabase
-        .from('companies')
-        .update(companyData)
-        .eq('id', editingCompany.id)
-      error = updateError
-    } else {
-      const { error: insertError } = await supabase
-        .from('companies')
-        .insert([companyData])
-      error = insertError
-    }
-
-    if (error) {
-      setMessage('Error: ' + error.message)
-    } else {
-      setMessage(editingCompany ? 'Company updated!' : 'Company added!')
-      resetCompanyForm()
-      loadCompanies()
-    }
-
-    setSaving(false)
-  }
-
-  const editCompany = (company: Company) => {
-    setEditingCompany(company)
-    setCompanyForm({
-      name: company.name,
-      region: company.region,
-      rating: company.rating,
-      description: company.description,
-      website_url: company.website_url || '',
-      pros: (company.pros || []).join('\n'),
-      cons: (company.cons || []).join('\n')
-    })
-    setShowCompanyForm(true)
+    if (!confirm('Delete this news article?')) return
+    await supabase.from('news').delete().eq('id', id)
+    loadNews()
   }
 
   const deleteCompany = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this company?')) return
-
-    const { error } = await supabase
-      .from('companies')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      setMessage('Error: ' + error.message)
-    } else {
-      setMessage('Company deleted!')
-      loadCompanies()
-    }
-  }
-
-  const resetCompanyForm = () => {
-    setCompanyForm({
-      name: '',
-      region: '',
-      rating: 4.0,
-      description: '',
-      website_url: '',
-      pros: '',
-      cons: ''
-    })
-    setEditingCompany(null)
-    setShowCompanyForm(false)
-  }
-
-  // Marketplace functions
-  const handleListingSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
-    setMessage('')
-
-    const listingData = {
-      category: listingForm.category,
-      title: listingForm.title.trim(),
-      description: listingForm.description.trim(),
-      price: listingForm.price.trim(),
-      contact_info: listingForm.contact_info.trim(),
-      website_url: listingForm.website_url.trim(),
-      image_url: listingForm.image_url.trim(),
-      region: listingForm.region,
-      featured: listingForm.featured
-    }
-
-    let error
-    if (editingListing) {
-      const { error: updateError } = await supabase
-        .from('marketplace_listings')
-        .update(listingData)
-        .eq('id', editingListing.id)
-      error = updateError
-    } else {
-      const { error: insertError } = await supabase
-        .from('marketplace_listings')
-        .insert([listingData])
-      error = insertError
-    }
-
-    if (error) {
-      setMessage('Error: ' + error.message)
-    } else {
-      setMessage(editingListing ? 'Listing updated!' : 'Listing added!')
-      resetListingForm()
-      loadListings()
-    }
-
-    setSaving(false)
-  }
-
-  const editListing = (listing: MarketplaceListing) => {
-    setEditingListing(listing)
-    setListingForm({
-      category: listing.category,
-      title: listing.title,
-      description: listing.description,
-      price: listing.price || '',
-      contact_info: listing.contact_info || '',
-      website_url: listing.website_url || '',
-      image_url: listing.image_url || '',
-      region: listing.region,
-      featured: listing.featured
-    })
-    setShowListingForm(true)
+    if (!confirm('Delete this company?')) return
+    await supabase.from('companies').delete().eq('id', id)
+    loadCompanies()
   }
 
   const deleteListing = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this listing?')) return
-
-    const { error } = await supabase
-      .from('marketplace_listings')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      setMessage('Error: ' + error.message)
-    } else {
-      setMessage('Listing deleted!')
-      loadListings()
-    }
+    if (!confirm('Delete this listing?')) return
+    await supabase.from('marketplace_listings').delete().eq('id', id)
+    loadListings()
   }
 
-  const resetListingForm = () => {
-    setListingForm({
-      category: 'insurance',
-      title: '',
-      description: '',
-      price: '',
-      contact_info: '',
-      website_url: '',
-      image_url: '',
-      region: 'National 🇬🇧',
-      featured: false
-    })
-    setEditingListing(null)
-    setShowListingForm(false)
+  const updateFeedbackStatus = async (id: string, status: string) => {
+    await supabase.from('feedback').update({ status }).eq('id', id)
+    loadFeedback()
   }
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    return new Date(dateString).toLocaleDateString('en-GB', { 
+      day: 'numeric', month: 'short', year: 'numeric' 
+    })
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'new': return '#ef4444'
+      case 'read': return '#f59e0b'
+      case 'in-progress': return '#3b82f6'
+      case 'done': return '#10b981'
+      default: return '#666'
+    }
   }
 
   if (loading) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#f3f4f6'
-      }}>
-        <p style={{ fontSize: '18px', color: '#666' }}>Loading...</p>
-      </div>
-    )
-  }
-
-  if (!isAdmin) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#f3f4f6'
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          padding: '40px',
-          borderRadius: '12px',
-          textAlign: 'center'
-        }}>
-          <h1 style={{ fontSize: '24px', marginBottom: '16px' }}>🔒 Access Denied</h1>
-          <p style={{ color: '#666' }}>You don't have permission to access this page.</p>
-        </div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
+        <p>Loading...</p>
       </div>
     )
   }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
-      <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '16px' }}>
-        {/* Header */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          padding: '20px',
-          marginBottom: '16px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-        }}>
-          <h1 style={{ margin: '0 0 8px 0', fontSize: '24px' }}>⚙️ Admin Panel</h1>
-          <p style={{ margin: 0, color: '#666' }}>Manage users, news, companies and marketplace</p>
-        </div>
-
-        {/* Message */}
-        {message && (
-          <div style={{
-            backgroundColor: message.startsWith('Error') ? '#fef2f2' : '#f0fdf4',
-            border: `1px solid ${message.startsWith('Error') ? '#fecaca' : '#bbf7d0'}`,
-            color: message.startsWith('Error') ? '#dc2626' : '#16a34a',
-            padding: '12px',
-            borderRadius: '8px',
-            marginBottom: '16px'
-          }}>
-            {message}
-          </div>
-        )}
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px' }}>⚙️ Admin Panel</h1>
 
         {/* Tabs */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          padding: '4px',
-          marginBottom: '16px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '4px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-        }}>
-          <button
-            onClick={() => setActiveTab('users')}
-            style={{
-              flex: '1 1 auto',
-              padding: '10px 8px',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '14px',
-              backgroundColor: activeTab === 'users' ? '#eab308' : 'transparent',
-              color: activeTab === 'users' ? 'black' : '#666'
-            }}
-          >
-            👥 Users ({users.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('news')}
-            style={{
-              flex: '1 1 auto',
-              padding: '10px 8px',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '14px',
-              backgroundColor: activeTab === 'news' ? '#eab308' : 'transparent',
-              color: activeTab === 'news' ? 'black' : '#666'
-            }}
-          >
-            📰 News ({news.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('companies')}
-            style={{
-              flex: '1 1 auto',
-              padding: '10px 8px',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '14px',
-              backgroundColor: activeTab === 'companies' ? '#eab308' : 'transparent',
-              color: activeTab === 'companies' ? 'black' : '#666'
-            }}
-          >
-            🏢 Companies ({companies.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('marketplace')}
-            style={{
-              flex: '1 1 auto',
-              padding: '10px 8px',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '14px',
-              backgroundColor: activeTab === 'marketplace' ? '#eab308' : 'transparent',
-              color: activeTab === 'marketplace' ? 'black' : '#666'
-            }}
-          >
-            🏪 Marketplace ({listings.length})
-          </button>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          {[
+            { id: 'users', label: '👥 Users' },
+            { id: 'news', label: '📰 News' },
+            { id: 'companies', label: '🏢 Companies' },
+            { id: 'marketplace', label: '🏪 Marketplace' },
+            { id: 'feedback', label: '📝 Feedback' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              style={{
+                padding: '10px 16px',
+                backgroundColor: activeTab === tab.id ? '#eab308' : 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '14px'
+              }}
+            >
+              {tab.label}
+              {tab.id === 'feedback' && feedback.filter(f => f.status === 'new').length > 0 && (
+                <span style={{
+                  marginLeft: '6px',
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  padding: '2px 6px',
+                  borderRadius: '10px',
+                  fontSize: '11px'
+                }}>
+                  {feedback.filter(f => f.status === 'new').length}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Users Tab */}
         {activeTab === 'users' && (
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            padding: '16px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-          }}>
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>👥 Registered Users</h2>
-            <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}>
-              Toggle admin access for users. Admins can access this panel and manage content.
-            </p>
-            
-            <div style={{ display: 'grid', gap: '8px' }}>
-              {users.length === 0 ? (
-                <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No users found.</p>
-              ) : (
-                users.map(profile => (
-                  <div
-                    key={profile.id}
-                    style={{
-                      padding: '12px',
-                      backgroundColor: profile.is_admin ? '#fef3c7' : '#f9fafb',
-                      borderRadius: '8px',
-                      border: `1px solid ${profile.is_admin ? '#eab308' : '#e5e7eb'}`,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '12px'
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        {profile.name || 'No name'}
-                        {profile.is_admin && <span style={{ fontSize: '12px', backgroundColor: '#eab308', padding: '2px 8px', borderRadius: '4px' }}>Admin</span>}
-                      </div>
-                      <div style={{ fontSize: '13px', color: '#666' }}>
-                        {profile.region || 'No region'}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => toggleAdmin(profile.id, profile.is_admin)}
-                      style={{
-                        padding: '8px 12px',
-                        backgroundColor: profile.is_admin ? '#dc2626' : '#16a34a',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        fontWeight: '500',
-                        flexShrink: 0
-                      }}
-                    >
-                      {profile.is_admin ? 'Remove Admin' : 'Make Admin'}
-                    </button>
-                  </div>
-                ))
-              )}
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '16px' }}>
+            <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>Registered Users ({users.length})</h2>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+                    <th style={{ textAlign: 'left', padding: '10px' }}>Name</th>
+                    <th style={{ textAlign: 'left', padding: '10px' }}>Region</th>
+                    <th style={{ textAlign: 'left', padding: '10px' }}>Joined</th>
+                    <th style={{ textAlign: 'center', padding: '10px' }}>Admin</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map(u => (
+                    <tr key={u.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                      <td style={{ padding: '10px' }}>{u.name}</td>
+                      <td style={{ padding: '10px' }}>{u.region}</td>
+                      <td style={{ padding: '10px' }}>{formatDate(u.created_at)}</td>
+                      <td style={{ padding: '10px', textAlign: 'center' }}>
+                        <button
+                          onClick={() => toggleAdmin(u.id, u.is_admin)}
+                          style={{
+                            padding: '4px 12px',
+                            backgroundColor: u.is_admin ? '#10b981' : '#e5e7eb',
+                            color: u.is_admin ? 'white' : '#666',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          {u.is_admin ? 'Yes' : 'No'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
         {/* News Tab */}
         {activeTab === 'news' && (
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            padding: '16px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-              <h2 style={{ margin: 0, fontSize: '18px' }}>📰 News Articles</h2>
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '18px', margin: 0 }}>News Articles ({news.length})</h2>
               <button
-                onClick={() => setShowNewsForm(!showNewsForm)}
-                style={{
-                  padding: '10px 16px',
-                  backgroundColor: '#eab308',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
+                onClick={() => { setEditingNews(null); setShowNewsForm(true) }}
+                style={{ padding: '8px 16px', backgroundColor: '#eab308', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
               >
-                {showNewsForm ? '✕ Cancel' : '+ Add News'}
+                + Add News
               </button>
             </div>
 
-            {/* News Form */}
             {showNewsForm && (
-              <form onSubmit={handleNewsSubmit} style={{
-                backgroundColor: '#f9fafb',
-                padding: '16px',
-                borderRadius: '8px',
-                marginBottom: '16px'
-              }}>
-                <h3 style={{ margin: '0 0 16px 0' }}>{editingNews ? 'Edit News Article' : 'Add News Article'}</h3>
-                
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Category *</label>
-                  <select
-                    value={newsForm.category}
-                    onChange={(e) => setNewsForm({ ...newsForm, category: e.target.value })}
-                    required
-                    style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                  >
-                    {NEWS_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Title *</label>
-                  <input
-                    type="text"
-                    value={newsForm.title}
-                    onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })}
-                    required
-                    style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Content *</label>
-                  <textarea
-                    value={newsForm.content}
-                    onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
-                    required
-                    rows={8}
-                    style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: '#eab308',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontWeight: '600',
-                      cursor: saving ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    {saving ? 'Saving...' : (editingNews ? 'Update News' : 'Publish News')}
-                  </button>
-                  {editingNews && (
-                    <button
-                      type="button"
-                      onClick={resetNewsForm}
-                      style={{
-                        padding: '10px 20px',
-                        backgroundColor: '#f3f4f6',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Cancel Edit
-                    </button>
-                  )}
-                </div>
-              </form>
+              <NewsForm
+                item={editingNews}
+                onSave={() => { setShowNewsForm(false); loadNews() }}
+                onCancel={() => setShowNewsForm(false)}
+              />
             )}
 
-            {/* News List */}
-            <div style={{ display: 'grid', gap: '8px' }}>
-              {news.length === 0 ? (
-                <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No news articles yet.</p>
-              ) : (
-                news.map(item => (
-                  <div
-                    key={item.id}
-                    style={{
-                      padding: '12px',
-                      backgroundColor: '#f9fafb',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '12px'
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: '600' }}>{item.title}</div>
-                      <div style={{ fontSize: '13px', color: '#666' }}>
-                        {item.category} • {formatDate(item.created_at)}
-                      </div>
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {news.map(item => (
+                <div key={item.id} style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '11px', backgroundColor: '#eab308', padding: '2px 8px', borderRadius: '4px' }}>{item.category}</span>
+                      <h3 style={{ margin: '8px 0 4px', fontSize: '15px' }}>{item.title}</h3>
+                      <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>{item.source} • {formatDate(item.created_at)}</p>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                      <button
-                        onClick={() => editNews(item)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#3b82f6',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '13px'
-                        }}
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button
-                        onClick={() => deleteNews(item.id)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#dc2626',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '13px'
-                        }}
-                      >
-                        🗑️ Delete
-                      </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => { setEditingNews(item); setShowNewsForm(true) }} style={{ padding: '4px 8px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Edit</button>
+                      <button onClick={() => deleteNews(item.id)} style={{ padding: '4px 8px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Delete</button>
                     </div>
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
           </div>
         )}
 
         {/* Companies Tab */}
         {activeTab === 'companies' && (
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            padding: '16px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-              <h2 style={{ margin: 0, fontSize: '18px' }}>🏢 Regional Companies</h2>
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '18px', margin: 0 }}>Companies ({companies.length})</h2>
               <button
-                onClick={() => setShowCompanyForm(!showCompanyForm)}
-                style={{
-                  padding: '10px 16px',
-                  backgroundColor: '#eab308',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
+                onClick={() => { setEditingCompany(null); setShowCompanyForm(true) }}
+                style={{ padding: '8px 16px', backgroundColor: '#eab308', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
               >
-                {showCompanyForm ? '✕ Cancel' : '+ Add Company'}
+                + Add Company
               </button>
             </div>
 
-            <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}>
-              These companies appear in Resources → "Who to Work For"
-            </p>
-
-            {/* Company Form */}
             {showCompanyForm && (
-              <form onSubmit={handleCompanySubmit} style={{
-                backgroundColor: '#f9fafb',
-                padding: '16px',
-                borderRadius: '8px',
-                marginBottom: '16px'
-              }}>
-                <h3 style={{ margin: '0 0 16px 0' }}>{editingCompany ? 'Edit Company' : 'Add New Company'}</h3>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Company Name *</label>
-                    <input
-                      type="text"
-                      value={companyForm.name}
-                      onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })}
-                      required
-                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Region *</label>
-                    <select
-                      value={companyForm.region}
-                      onChange={(e) => setCompanyForm({ ...companyForm, region: e.target.value })}
-                      required
-                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                    >
-                      <option value="">Select region</option>
-                      {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Rating (1-5)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="5"
-                      step="0.1"
-                      value={companyForm.rating}
-                      onChange={(e) => setCompanyForm({ ...companyForm, rating: parseFloat(e.target.value) })}
-                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Website URL</label>
-                    <input
-                      type="url"
-                      value={companyForm.website_url}
-                      onChange={(e) => setCompanyForm({ ...companyForm, website_url: e.target.value })}
-                      placeholder="https://..."
-                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Description *</label>
-                  <textarea
-                    value={companyForm.description}
-                    onChange={(e) => setCompanyForm({ ...companyForm, description: e.target.value })}
-                    required
-                    rows={3}
-                    style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Pros (one per line)</label>
-                    <textarea
-                      value={companyForm.pros}
-                      onChange={(e) => setCompanyForm({ ...companyForm, pros: e.target.value })}
-                      rows={4}
-                      placeholder="Good pay rates&#10;Flexible hours&#10;Modern app"
-                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Cons (one per line)</label>
-                    <textarea
-                      value={companyForm.cons}
-                      onChange={(e) => setCompanyForm({ ...companyForm, cons: e.target.value })}
-                      rows={4}
-                      placeholder="High commission&#10;Limited areas&#10;Busy periods"
-                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: '#eab308',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontWeight: '600',
-                      cursor: saving ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    {saving ? 'Saving...' : (editingCompany ? 'Update Company' : 'Add Company')}
-                  </button>
-                  {editingCompany && (
-                    <button
-                      type="button"
-                      onClick={resetCompanyForm}
-                      style={{
-                        padding: '10px 20px',
-                        backgroundColor: '#f3f4f6',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Cancel Edit
-                    </button>
-                  )}
-                </div>
-              </form>
+              <CompanyForm
+                item={editingCompany}
+                onSave={() => { setShowCompanyForm(false); loadCompanies() }}
+                onCancel={() => setShowCompanyForm(false)}
+              />
             )}
 
-            {/* Companies List */}
-            <div style={{ display: 'grid', gap: '8px' }}>
-              {companies.length === 0 ? (
-                <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No companies added yet. Add companies here and they will appear in Resources.</p>
-              ) : (
-                companies.map(company => (
-                  <div
-                    key={company.id}
-                    style={{
-                      padding: '12px',
-                      backgroundColor: '#f9fafb',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '12px'
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: '600' }}>{company.name}</div>
-                      <div style={{ fontSize: '13px', color: '#666' }}>
-                        {company.region} • ⭐ {company.rating}
-                      </div>
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {companies.map(item => (
+                <div key={item.id} style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '11px', backgroundColor: '#dbeafe', padding: '2px 8px', borderRadius: '4px' }}>{item.region}</span>
+                      <h3 style={{ margin: '8px 0 4px', fontSize: '15px' }}>{item.name} ⭐ {item.rating}</h3>
+                      <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>{item.description?.substring(0, 100)}...</p>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                      <button
-                        onClick={() => editCompany(company)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#3b82f6',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '13px'
-                        }}
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button
-                        onClick={() => deleteCompany(company.id)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#dc2626',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '13px'
-                        }}
-                      >
-                        🗑️ Delete
-                      </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => { setEditingCompany(item); setShowCompanyForm(true) }} style={{ padding: '4px 8px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Edit</button>
+                      <button onClick={() => deleteCompany(item.id)} style={{ padding: '4px 8px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Delete</button>
                     </div>
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
           </div>
         )}
 
         {/* Marketplace Tab */}
         {activeTab === 'marketplace' && (
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            padding: '16px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-              <h2 style={{ margin: 0, fontSize: '18px' }}>🏪 Marketplace Listings</h2>
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '18px', margin: 0 }}>Marketplace Listings ({listings.length})</h2>
               <button
-                onClick={() => setShowListingForm(!showListingForm)}
-                style={{
-                  padding: '10px 16px',
-                  backgroundColor: '#eab308',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
+                onClick={() => { setEditingListing(null); setShowListingForm(true) }}
+                style={{ padding: '8px 16px', backgroundColor: '#eab308', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
               >
-                {showListingForm ? '✕ Cancel' : '+ Add Listing'}
+                + Add Listing
               </button>
             </div>
 
-            <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}>
-              These listings appear in the Marketplace page
-            </p>
-
-            {/* Listing Form */}
             {showListingForm && (
-              <form onSubmit={handleListingSubmit} style={{
-                backgroundColor: '#f9fafb',
-                padding: '16px',
-                borderRadius: '8px',
-                marginBottom: '16px'
-              }}>
-                <h3 style={{ margin: '0 0 16px 0' }}>{editingListing ? 'Edit Listing' : 'Add New Listing'}</h3>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Category *</label>
-                    <select
-                      value={listingForm.category}
-                      onChange={(e) => setListingForm({ ...listingForm, category: e.target.value })}
-                      required
-                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                    >
-                      {MARKETPLACE_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Region</label>
-                    <select
-                      value={listingForm.region}
-                      onChange={(e) => setListingForm({ ...listingForm, region: e.target.value })}
-                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                    >
-                      {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Title *</label>
-                  <input
-                    type="text"
-                    value={listingForm.title}
-                    onChange={(e) => setListingForm({ ...listingForm, title: e.target.value })}
-                    required
-                    style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Description *</label>
-                  <textarea
-                    value={listingForm.description}
-                    onChange={(e) => setListingForm({ ...listingForm, description: e.target.value })}
-                    required
-                    rows={3}
-                    style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Price</label>
-                    <input
-                      type="text"
-                      value={listingForm.price}
-                      onChange={(e) => setListingForm({ ...listingForm, price: e.target.value })}
-                      placeholder="£99/month or Free quote"
-                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Contact Info</label>
-                    <input
-                      type="text"
-                      value={listingForm.contact_info}
-                      onChange={(e) => setListingForm({ ...listingForm, contact_info: e.target.value })}
-                      placeholder="Phone or email"
-                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Website URL</label>
-                    <input
-                      type="url"
-                      value={listingForm.website_url}
-                      onChange={(e) => setListingForm({ ...listingForm, website_url: e.target.value })}
-                      placeholder="https://..."
-                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500', fontSize: '14px' }}>Image URL</label>
-                    <input
-                      type="url"
-                      value={listingForm.image_url}
-                      onChange={(e) => setListingForm({ ...listingForm, image_url: e.target.value })}
-                      placeholder="https://..."
-                      style={{ width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={listingForm.featured}
-                      onChange={(e) => setListingForm({ ...listingForm, featured: e.target.checked })}
-                      style={{ width: '18px', height: '18px' }}
-                    />
-                    <span style={{ fontWeight: '500' }}>⭐ Featured listing (shows at top)</span>
-                  </label>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: '#eab308',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontWeight: '600',
-                      cursor: saving ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    {saving ? 'Saving...' : (editingListing ? 'Update Listing' : 'Add Listing')}
-                  </button>
-                  {editingListing && (
-                    <button
-                      type="button"
-                      onClick={resetListingForm}
-                      style={{
-                        padding: '10px 20px',
-                        backgroundColor: '#f3f4f6',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Cancel Edit
-                    </button>
-                  )}
-                </div>
-              </form>
+              <ListingForm
+                item={editingListing}
+                onSave={() => { setShowListingForm(false); loadListings() }}
+                onCancel={() => setShowListingForm(false)}
+              />
             )}
 
-            {/* Listings List */}
-            <div style={{ display: 'grid', gap: '8px' }}>
-              {listings.length === 0 ? (
-                <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>No listings added yet. Add listings here and they will appear in Marketplace.</p>
-              ) : (
-                listings.map(listing => (
-                  <div
-                    key={listing.id}
-                    style={{
-                      padding: '12px',
-                      backgroundColor: listing.featured ? '#fef3c7' : '#f9fafb',
-                      borderRadius: '8px',
-                      border: `1px solid ${listing.featured ? '#eab308' : '#e5e7eb'}`,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '12px'
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: '600' }}>
-                        {listing.featured && '⭐ '}{listing.title}
-                      </div>
-                      <div style={{ fontSize: '13px', color: '#666' }}>
-                        {MARKETPLACE_CATEGORIES.find(c => c.id === listing.category)?.label} • {listing.region}
-                        {listing.price && ` • ${listing.price}`}
-                      </div>
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {listings.map(item => (
+                <div key={item.id} style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: item.featured ? '2px solid #eab308' : '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '11px', backgroundColor: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>{item.category}</span>
+                      {item.featured && <span style={{ fontSize: '11px', backgroundColor: '#eab308', padding: '2px 8px', borderRadius: '4px', marginLeft: '6px' }}>⭐ Featured</span>}
+                      <h3 style={{ margin: '8px 0 4px', fontSize: '15px' }}>{item.title}</h3>
+                      <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>{item.description?.substring(0, 100)}...</p>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                      <button
-                        onClick={() => editListing(listing)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#3b82f6',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '13px'
-                        }}
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button
-                        onClick={() => deleteListing(listing.id)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#dc2626',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '13px'
-                        }}
-                      >
-                        🗑️ Delete
-                      </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => { setEditingListing(item); setShowListingForm(true) }} style={{ padding: '4px 8px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Edit</button>
+                      <button onClick={() => deleteListing(item.id)} style={{ padding: '4px 8px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Delete</button>
                     </div>
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
           </div>
         )}
+
+        {/* Feedback Tab */}
+        {activeTab === 'feedback' && (
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '16px' }}>
+            <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>User Feedback ({feedback.length})</h2>
+            
+            {feedback.length === 0 ? (
+              <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>No feedback received yet.</p>
+            ) : (
+              <div style={{ display: 'grid', gap: '16px' }}>
+                {feedback.map(item => (
+                  <div key={item.id} style={{ 
+                    padding: '16px', 
+                    backgroundColor: '#f9fafb', 
+                    borderRadius: '8px', 
+                    border: '1px solid #e5e7eb',
+                    borderLeft: `4px solid ${getStatusColor(item.status)}`
+                  }}>
+                    {/* Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <strong>{item.user_name}</strong>
+                        <span style={{ color: '#666', marginLeft: '8px', fontSize: '13px' }}>{item.user_region}</span>
+                        <div style={{ fontSize: '12px', color: '#999' }}>{formatDate(item.created_at)}</div>
+                      </div>
+                      <select
+                        value={item.status}
+                        onChange={(e) => updateFeedbackStatus(item.id, e.target.value)}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          border: '1px solid #e5e7eb',
+                          backgroundColor: getStatusColor(item.status),
+                          color: 'white',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {FEEDBACK_STATUSES.map(s => (
+                          <option key={s} value={s} style={{ backgroundColor: 'white', color: 'black' }}>
+                            {s.charAt(0).toUpperCase() + s.slice(1)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Feedback Content */}
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      {item.likes && (
+                        <div>
+                          <strong style={{ color: '#10b981', fontSize: '13px' }}>👍 What they like:</strong>
+                          <p style={{ margin: '4px 0 0', fontSize: '14px', whiteSpace: 'pre-wrap' }}>{item.likes}</p>
+                        </div>
+                      )}
+                      {item.dislikes && (
+                        <div>
+                          <strong style={{ color: '#ef4444', fontSize: '13px' }}>👎 What they dislike:</strong>
+                          <p style={{ margin: '4px 0 0', fontSize: '14px', whiteSpace: 'pre-wrap' }}>{item.dislikes}</p>
+                        </div>
+                      )}
+                      {item.features && (
+                        <div>
+                          <strong style={{ color: '#3b82f6', fontSize: '13px' }}>💡 Feature requests:</strong>
+                          <p style={{ margin: '4px 0 0', fontSize: '14px', whiteSpace: 'pre-wrap' }}>{item.features}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </main>
+    </div>
+  )
+}
+
+// News Form Component
+function NewsForm({ item, onSave, onCancel }: { item: NewsItem | null, onSave: () => void, onCancel: () => void }) {
+  const [title, setTitle] = useState(item?.title || '')
+  const [summary, setSummary] = useState(item?.summary || '')
+  const [source, setSource] = useState(item?.source || '')
+  const [sourceUrl, setSourceUrl] = useState(item?.source_url || '')
+  const [category, setCategory] = useState(item?.category || NEWS_CATEGORIES[0])
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    if (!title.trim() || !summary.trim()) { alert('Title and summary required'); return }
+    setSaving(true)
+
+    const data = { title: title.trim(), summary: summary.trim(), source: source.trim(), source_url: sourceUrl.trim(), category }
+
+    if (item) {
+      await supabase.from('news').update(data).eq('id', item.id)
+    } else {
+      await supabase.from('news').insert([data])
+    }
+
+    setSaving(false)
+    onSave()
+  }
+
+  return (
+    <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', marginBottom: '16px' }}>
+      <h3 style={{ margin: '0 0 12px' }}>{item ? 'Edit News' : 'Add News'}</h3>
+      <div style={{ display: 'grid', gap: '12px' }}>
+        <input type="text" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
+        <textarea placeholder="Summary" value={summary} onChange={(e) => setSummary(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px', minHeight: '100px' }} />
+        <input type="text" placeholder="Source (e.g. BBC News)" value={source} onChange={(e) => setSource(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
+        <input type="url" placeholder="Source URL" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
+        <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }}>
+          {NEWS_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={handleSave} disabled={saving} style={{ padding: '10px 20px', backgroundColor: '#eab308', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>{saving ? 'Saving...' : 'Save'}</button>
+          <button onClick={onCancel} style={{ padding: '10px 20px', backgroundColor: '#e5e7eb', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Company Form Component
+function CompanyForm({ item, onSave, onCancel }: { item: Company | null, onSave: () => void, onCancel: () => void }) {
+  const [name, setName] = useState(item?.name || '')
+  const [region, setRegion] = useState(item?.region || REGIONS[0])
+  const [rating, setRating] = useState(item?.rating?.toString() || '4.0')
+  const [description, setDescription] = useState(item?.description || '')
+  const [websiteUrl, setWebsiteUrl] = useState(item?.website_url || '')
+  const [pros, setPros] = useState(item?.pros?.join('\n') || '')
+  const [cons, setCons] = useState(item?.cons?.join('\n') || '')
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    if (!name.trim()) { alert('Name required'); return }
+    setSaving(true)
+
+    const data = {
+      name: name.trim(),
+      region,
+      rating: parseFloat(rating),
+      description: description.trim(),
+      website_url: websiteUrl.trim(),
+      pros: pros.split('\n').filter(p => p.trim()),
+      cons: cons.split('\n').filter(c => c.trim())
+    }
+
+    if (item) {
+      await supabase.from('companies').update(data).eq('id', item.id)
+    } else {
+      await supabase.from('companies').insert([data])
+    }
+
+    setSaving(false)
+    onSave()
+  }
+
+  return (
+    <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', marginBottom: '16px' }}>
+      <h3 style={{ margin: '0 0 12px' }}>{item ? 'Edit Company' : 'Add Company'}</h3>
+      <div style={{ display: 'grid', gap: '12px' }}>
+        <input type="text" placeholder="Company Name" value={name} onChange={(e) => setName(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
+        <select value={region} onChange={(e) => setRegion(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }}>
+          {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <input type="number" placeholder="Rating (e.g. 4.5)" value={rating} onChange={(e) => setRating(e.target.value)} min="1" max="5" step="0.1" style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
+        <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px', minHeight: '80px' }} />
+        <input type="url" placeholder="Website URL" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
+        <textarea placeholder="Pros (one per line)" value={pros} onChange={(e) => setPros(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px', minHeight: '60px' }} />
+        <textarea placeholder="Cons (one per line)" value={cons} onChange={(e) => setCons(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px', minHeight: '60px' }} />
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={handleSave} disabled={saving} style={{ padding: '10px 20px', backgroundColor: '#eab308', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>{saving ? 'Saving...' : 'Save'}</button>
+          <button onClick={onCancel} style={{ padding: '10px 20px', backgroundColor: '#e5e7eb', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Listing Form Component
+function ListingForm({ item, onSave, onCancel }: { item: MarketplaceListing | null, onSave: () => void, onCancel: () => void }) {
+  const [category, setCategory] = useState(item?.category || MARKETPLACE_CATEGORIES[0])
+  const [title, setTitle] = useState(item?.title || '')
+  const [description, setDescription] = useState(item?.description || '')
+  const [price, setPrice] = useState(item?.price || '')
+  const [contactInfo, setContactInfo] = useState(item?.contact_info || '')
+  const [websiteUrl, setWebsiteUrl] = useState(item?.website_url || '')
+  const [region, setRegion] = useState(item?.region || REGIONS[0])
+  const [featured, setFeatured] = useState(item?.featured || false)
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    if (!title.trim()) { alert('Title required'); return }
+    setSaving(true)
+
+    const data = {
+      category,
+      title: title.trim(),
+      description: description.trim(),
+      price: price.trim(),
+      contact_info: contactInfo.trim(),
+      website_url: websiteUrl.trim(),
+      region,
+      featured
+    }
+
+    if (item) {
+      await supabase.from('marketplace_listings').update(data).eq('id', item.id)
+    } else {
+      await supabase.from('marketplace_listings').insert([data])
+    }
+
+    setSaving(false)
+    onSave()
+  }
+
+  return (
+    <div style={{ padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', marginBottom: '16px' }}>
+      <h3 style={{ margin: '0 0 12px' }}>{item ? 'Edit Listing' : 'Add Listing'}</h3>
+      <div style={{ display: 'grid', gap: '12px' }}>
+        <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }}>
+          {MARKETPLACE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <input type="text" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
+        <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px', minHeight: '80px' }} />
+        <input type="text" placeholder="Price (optional)" value={price} onChange={(e) => setPrice(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
+        <input type="text" placeholder="Contact Info (optional)" value={contactInfo} onChange={(e) => setContactInfo(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
+        <input type="url" placeholder="Website URL" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }} />
+        <select value={region} onChange={(e) => setRegion(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '14px' }}>
+          {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} />
+          Featured listing
+        </label>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={handleSave} disabled={saving} style={{ padding: '10px 20px', backgroundColor: '#eab308', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>{saving ? 'Saving...' : 'Save'}</button>
+          <button onClick={onCancel} style={{ padding: '10px 20px', backgroundColor: '#e5e7eb', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cancel</button>
+        </div>
+      </div>
     </div>
   )
 }

@@ -118,6 +118,28 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* Feedback Link */}
+        <div style={{
+          textAlign: 'center',
+          marginBottom: '24px'
+        }}>
+          <Link 
+            href="/feedback" 
+            style={{ 
+              display: 'inline-block',
+              padding: '12px 24px',
+              backgroundColor: '#eab308',
+              color: 'black',
+              textDecoration: 'none',
+              borderRadius: '8px',
+              fontWeight: '600',
+              fontSize: '15px'
+            }}
+          >
+            📝 Give Your Feedback Here
+          </Link>
+        </div>
+
         {/* Bottom Bar */}
         <div style={{
           borderTop: '1px solid rgba(255,255,255,0.3)',
