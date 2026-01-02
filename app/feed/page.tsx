@@ -121,6 +121,7 @@ export default function FeedPage() {
   const [comments, setComments] = useState<{ [postId: string]: Comment[] }>({})
   const [loading, setLoading] = useState(true)
   const [regionFilter, setRegionFilter] = useState<'all' | 'my-region'>('all')
+  const [hasUserPosted, setHasUserPosted] = useState(false)
   
   // Post composer state
   const [newPostContent, setNewPostContent] = useState('')
@@ -145,6 +146,7 @@ export default function FeedPage() {
       loadPosts()
       loadAllLikes()
       loadAllDislikes()
+      checkIfUserHasPosted()
     }
   }, [user, regionFilter])
 
@@ -171,6 +173,22 @@ export default function FeedPage() {
 
     setProfile(profileData)
     setLoading(false)
+  }
+
+  const checkIfUserHasPosted = async () => {
+    if (!user) return
+    
+    const { data, error } = await supabase
+      .from('posts')
+      .select('id')
+      .eq('author_id', user.id)
+      .limit(1)
+    
+    if (!error && data && data.length > 0) {
+      setHasUserPosted(true)
+    } else {
+      setHasUserPosted(false)
+    }
   }
 
   const loadPosts = async () => {
@@ -339,6 +357,7 @@ export default function FeedPage() {
       setNewPostContent('')
       setNewPostLink('')
       removeImage()
+      setHasUserPosted(true)
       loadPosts()
     }
 
@@ -359,6 +378,7 @@ export default function FeedPage() {
       alert('Failed to delete post')
     } else {
       loadPosts()
+      checkIfUserHasPosted()
     }
   }
 
@@ -467,6 +487,14 @@ export default function FeedPage() {
   const hasUserDisliked = (postId: string) => dislikes.some(d => d.post_id === postId && d.user_id === user?.id)
   const isPostOwner = (postAuthorId: string) => user?.id === postAuthorId
 
+  // Get placeholder text based on whether user has posted before
+  const getPlaceholderText = () => {
+    if (hasUserPosted) {
+      return "What's happening in your driving world?"
+    }
+    return "Introduce yourself to the group, tell us a bit about yourself!"
+  }
+
   if (loading) {
     return (
       <div style={{ 
@@ -538,7 +566,7 @@ export default function FeedPage() {
           <textarea
             value={newPostContent}
             onChange={(e) => setNewPostContent(e.target.value)}
-            placeholder="What's happening in your driving world?"
+            placeholder={getPlaceholderText()}
             maxLength={1000}
             style={{
               width: '100%',
