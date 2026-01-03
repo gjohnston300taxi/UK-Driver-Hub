@@ -11,10 +11,12 @@ const supabase = createClient(
 export default function FeedbackPage() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
+  const [userEmail, setUserEmail] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   
+  const [email, setEmail] = useState('')
   const [likes, setLikes] = useState('')
   const [dislikes, setDislikes] = useState('')
   const [features, setFeatures] = useState('')
@@ -27,6 +29,8 @@ export default function FeedbackPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { window.location.href = '/signin'; return }
     setUser(user)
+    setUserEmail(user.email || '')
+    setEmail(user.email || '')
     
     const { data } = await supabase.from('profiles').select('name, region').eq('id', user.id).single()
     if (!data?.name || !data?.region) { window.location.href = '/onboarding'; return }
@@ -36,7 +40,12 @@ export default function FeedbackPage() {
 
   const handleSubmit = async () => {
     if (!likes.trim() && !dislikes.trim() && !features.trim()) {
-      alert('Please fill in at least one field')
+      alert('Please fill in at least one feedback field')
+      return
+    }
+
+    if (!email.trim()) {
+      alert('Please provide your email address so we can respond to your feedback')
       return
     }
 
@@ -48,6 +57,7 @@ export default function FeedbackPage() {
         user_id: user.id,
         user_name: profile.name,
         user_region: profile.region,
+        user_email: email.trim(),
         likes: likes.trim() || null,
         dislikes: dislikes.trim() || null,
         features: features.trim() || null,
@@ -86,7 +96,7 @@ export default function FeedbackPage() {
             <div style={{ fontSize: '64px', marginBottom: '16px' }}>🎉</div>
             <h2 style={{ margin: '0 0 12px 0', fontSize: '24px' }}>Thank You!</h2>
             <p style={{ color: '#666', margin: '0 0 24px 0', lineHeight: '1.6' }}>
-              Your feedback has been submitted. We really appreciate you taking the time to help us improve UK Driver Hub.
+              Your feedback has been submitted. We really appreciate you taking the time to help us improve UK Driver Hub. We'll respond to your email if needed.
             </p>
             <a
               href="/feed"
@@ -134,6 +144,35 @@ export default function FeedbackPage() {
           padding: '24px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
         }}>
+          {/* Email Address */}
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '8px', 
+              fontWeight: '600',
+              fontSize: '16px'
+            }}>
+              📧 Your Email Address <span style={{ color: '#ef4444' }}>*</span>
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                fontSize: '16px',
+                boxSizing: 'border-box'
+              }}
+            />
+            <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#666' }}>
+              So we can respond to your feedback
+            </p>
+          </div>
+
           {/* What do you like? */}
           <div style={{ marginBottom: '24px' }}>
             <label style={{ 
@@ -243,7 +282,7 @@ export default function FeedbackPage() {
             color: '#999', 
             textAlign: 'center' 
           }}>
-            Your feedback is anonymous to other users but visible to our team.
+            Your feedback is only visible to our team.
           </p>
         </div>
       </main>

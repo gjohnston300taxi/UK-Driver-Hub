@@ -56,6 +56,7 @@ interface Feedback {
   user_id: string
   user_name: string
   user_region: string
+  user_email: string
   likes: string
   dislikes: string
   features: string
@@ -451,6 +452,26 @@ export default function AdminPage() {
                         <strong>{item.user_name}</strong>
                         <span style={{ color: '#666', marginLeft: '8px', fontSize: '13px' }}>{item.user_region}</span>
                         <div style={{ fontSize: '12px', color: '#999' }}>{formatDate(item.created_at)}</div>
+                        {item.user_email && (
+                          <a 
+                            href={`mailto:${item.user_email}?subject=RE: Your UK Driver Hub Feedback`}
+                            style={{ 
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              marginTop: '6px',
+                              padding: '4px 10px',
+                              backgroundColor: '#3b82f6',
+                              color: 'white',
+                              textDecoration: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: '500'
+                            }}
+                          >
+                            📧 Reply: {item.user_email}
+                          </a>
+                        )}
                       </div>
                       <select
                         value={item.status}
