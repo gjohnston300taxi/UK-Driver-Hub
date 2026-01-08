@@ -326,31 +326,32 @@ export default function ProfilePage() {
               </button>
             </div>
             
+            {/* Hidden file inputs - one for camera, one for gallery */}
             <input
               type="file"
               ref={fileInputRef}
               onChange={handleAvatarSelect}
               accept="image/*"
-              capture="user"
               style={{ display: 'none' }}
             />
             
             {/* Upload/Remove buttons */}
-            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingAvatar}
                 style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#f3f4f6',
-                  border: '1px solid #d1d5db',
+                  padding: '10px 16px',
+                  backgroundColor: '#eab308',
+                  color: 'black',
+                  border: 'none',
                   borderRadius: '6px',
                   cursor: uploadingAvatar ? 'not-allowed' : 'pointer',
                   fontSize: '14px',
-                  fontWeight: '500'
+                  fontWeight: '600'
                 }}
               >
-                {uploadingAvatar ? 'Uploading...' : avatarUrl ? 'Change Photo' : 'Add Photo'}
+                {uploadingAvatar ? 'Uploading...' : '📷 Choose Photo'}
               </button>
               
               {avatarUrl && (
@@ -358,17 +359,17 @@ export default function ProfilePage() {
                   onClick={handleRemoveAvatar}
                   disabled={uploadingAvatar}
                   style={{
-                    padding: '8px 16px',
+                    padding: '10px 16px',
                     backgroundColor: '#fee2e2',
                     color: '#dc2626',
                     border: 'none',
                     borderRadius: '6px',
                     cursor: uploadingAvatar ? 'not-allowed' : 'pointer',
                     fontSize: '14px',
-                    fontWeight: '500'
+                    fontWeight: '600'
                   }}
                 >
-                  Remove
+                  🗑️ Remove
                 </button>
               )}
             </div>
