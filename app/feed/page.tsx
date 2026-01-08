@@ -187,6 +187,9 @@ export default function FeedPage() {
 
   // Share/toast state
   const [shareMessage, setShareMessage] = useState<string | null>(null)
+  
+  // Track if user has made any posts (for welcome message)
+  const [userHasPosted, setUserHasPosted] = useState(true) // Default true to avoid flash
 
   useEffect(() => {
     loadUser()
@@ -197,8 +200,18 @@ export default function FeedPage() {
       loadPosts()
       loadAllLikes()
       loadAllDislikes()
+      checkIfUserHasPosted()
     }
   }, [user, regionFilter])
+
+  const checkIfUserHasPosted = async () => {
+    if (!user) return
+    const { count } = await supabase
+      .from('posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('author_id', user.id)
+    setUserHasPosted((count || 0) > 0)
+  }
 
   useEffect(() => {
     if (shareMessage) {
@@ -358,6 +371,7 @@ export default function FeedPage() {
       setNewPostContent('')
       setNewPostLink('')
       removeImage()
+      setUserHasPosted(true) // User has now posted
       loadPosts()
     }
     setPosting(false)
@@ -637,7 +651,7 @@ export default function FeedPage() {
 
         {/* Post Composer */}
         <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '16px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder="What's happening in your driving world?" maxLength={1000} style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', minHeight: '80px', resize: 'vertical', fontSize: '16px', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+          <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder={userHasPosted ? "What's happening in your driving world?" : "Tell us a bit about yourself, what city you're working in and how many years have you been a cab driver"} maxLength={1000} style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', minHeight: '80px', resize: 'vertical', fontSize: '16px', boxSizing: 'border-box', fontFamily: 'inherit' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', marginBottom: '12px' }}>
             <span style={{ fontSize: '14px', color: newPostContent.length > 900 ? '#ef4444' : '#999' }}>{newPostContent.length}/1000</span>
             {uploadProgress && <span style={{ fontSize: '14px', color: '#eab308' }}>{uploadProgress}</span>}
