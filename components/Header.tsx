@@ -40,6 +40,7 @@ export default function Header() {
   const navLinks = [
     { href: '/feed', label: 'Feed', emoji: '📰' },
     { href: '/news', label: 'News', emoji: '📢' },
+    { href: '/blog', label: 'Blog', emoji: '📝' },
     { href: '/marketplace', label: 'Marketplace', emoji: '🏪' },
     { href: '/finance', label: 'Finance', emoji: '💰' },
     { href: '/resources', label: 'Resources', emoji: '📚' },
