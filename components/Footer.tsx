@@ -106,10 +106,10 @@ export default function Footer() {
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <a 
-                href="mailto:support@ukdriverhub.com" 
+                href="mailto:info@ukdriverhub.org" 
                 style={{ color: 'white', textDecoration: 'none', fontSize: '14px' }}
               >
-                📧 support@ukdriverhub.com
+                📧 info@ukdriverhub.org
               </a>
               <p style={{ color: 'white', fontSize: '14px', margin: 0 }}>
                 📍 United Kingdom
