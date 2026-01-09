@@ -54,6 +54,125 @@ const EXPENSE_CATEGORIES = [
   { id: 'other', label: '📦 Other' }
 ]
 
+// British Date Picker Component
+function BritishDatePicker({ value, onChange, label }: { value: string, onChange: (date: string) => void, label?: string }) {
+  // Convert YYYY-MM-DD to DD/MM/YYYY for display
+  const formatForDisplay = (isoDate: string) => {
+    if (!isoDate) return ''
+    const [year, month, day] = isoDate.split('-')
+    return `${day}/${month}/${year}`
+  }
+
+  // Convert DD/MM/YYYY to YYYY-MM-DD for storage
+  const parseFromDisplay = (britishDate: string) => {
+    const parts = britishDate.split('/')
+    if (parts.length === 3) {
+      const [day, month, year] = parts
+      if (day && month && year && year.length === 4) {
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      }
+    }
+    return ''
+  }
+
+  const [displayValue, setDisplayValue] = useState(formatForDisplay(value))
+
+  useEffect(() => {
+    setDisplayValue(formatForDisplay(value))
+  }, [value])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let input = e.target.value.replace(/[^\d/]/g, '')
+    
+    // Auto-add slashes
+    if (input.length === 2 && !input.includes('/')) {
+      input = input + '/'
+    } else if (input.length === 5 && input.split('/').length === 2) {
+      input = input + '/'
+    }
+    
+    // Limit length
+    if (input.length > 10) input = input.slice(0, 10)
+    
+    setDisplayValue(input)
+    
+    // Try to parse and update parent
+    if (input.length === 10) {
+      const isoDate = parseFromDisplay(input)
+      if (isoDate) {
+        onChange(isoDate)
+      }
+    }
+  }
+
+  const handleBlur = () => {
+    // Validate on blur
+    const isoDate = parseFromDisplay(displayValue)
+    if (isoDate) {
+      const date = new Date(isoDate)
+      if (!isNaN(date.getTime())) {
+        onChange(isoDate)
+        setDisplayValue(formatForDisplay(isoDate))
+      }
+    }
+  }
+
+  // Also support native date picker as fallback
+  const handleNativeDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isoDate = e.target.value
+    if (isoDate) {
+      onChange(isoDate)
+      setDisplayValue(formatForDisplay(isoDate))
+    }
+  }
+
+  return (
+    <div>
+      {label && <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>{label}</label>}
+      <div style={{ position: 'relative' }}>
+        <input
+          type="text"
+          value={displayValue}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          placeholder="DD/MM/YYYY"
+          style={{
+            width: '100%',
+            padding: '10px 40px 10px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: '8px',
+            fontSize: '14px',
+            boxSizing: 'border-box'
+          }}
+        />
+        <input
+          type="date"
+          value={value}
+          onChange={handleNativeDateChange}
+          style={{
+            position: 'absolute',
+            right: '8px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: '24px',
+            height: '24px',
+            opacity: 0,
+            cursor: 'pointer'
+          }}
+        />
+        <span style={{
+          position: 'absolute',
+          right: '12px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          pointerEvents: 'none',
+          fontSize: '16px'
+        }}>📅</span>
+      </div>
+    </div>
+  )
+}
+
 export default function FinancePage() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
@@ -258,7 +377,13 @@ export default function FinancePage() {
     const expNetIncome = expTotalEarnings - expTotalExpenses
     const expTotalJobs = exportEarnings.reduce((sum, e) => sum + e.total_jobs, 0)
     
-    let csv = `Taxi Finance Report\nPeriod: ${exportStartDate} to ${exportEndDate}\nGenerated: ${new Date().toLocaleDateString('en-GB')}\n\n`
+    // Format dates as DD/MM/YYYY in CSV
+    const formatDateForCSV = (isoDate: string) => {
+      const [year, month, day] = isoDate.split('-')
+      return `${day}/${month}/${year}`
+    }
+    
+    let csv = `Taxi Finance Report\nPeriod: ${formatDateForCSV(exportStartDate)} to ${formatDateForCSV(exportEndDate)}\nGenerated: ${new Date().toLocaleDateString('en-GB')}\n\n`
     csv += 'Date,Type,Category,Description,Cash,Account,Card,App,Total Fares,Expense Amount,Jobs,Notes,Company\n'
     
     const allDates = new Set<string>()
@@ -269,8 +394,9 @@ export default function FinancePage() {
     sortedDates.forEach(date => {
       const dayEarning = exportEarnings.find(e => e.date === date)
       const dayExpenses = exportExpenses.filter(e => e.date === date)
-      if (dayEarning) csv += `${date},Income,,,"${dayEarning.cash_amount}","${dayEarning.account_amount}","${dayEarning.card_amount}","${dayEarning.app_amount}","${dayEarning.total_fares}",,"${dayEarning.total_jobs}","${dayEarning.notes || ''}","${dayEarning.company || ''}"\n`
-      dayExpenses.forEach(exp => csv += `${date},Expense,"${getCategoryLabel(exp.category)}","${exp.description || ''}",,,,,,"${exp.amount}",,,\n`)
+      const formattedDate = formatDateForCSV(date)
+      if (dayEarning) csv += `${formattedDate},Income,,,"${dayEarning.cash_amount}","${dayEarning.account_amount}","${dayEarning.card_amount}","${dayEarning.app_amount}","${dayEarning.total_fares}",,"${dayEarning.total_jobs}","${dayEarning.notes || ''}","${dayEarning.company || ''}"\n`
+      dayExpenses.forEach(exp => csv += `${formattedDate},Expense,"${getCategoryLabel(exp.category)}","${exp.description || ''}",,,,,,"${exp.amount}",,,\n`)
     })
     
     csv += `\n--- SUMMARY ---\n`
@@ -413,8 +539,7 @@ export default function FinancePage() {
             <h3 style={{ margin: '0 0 20px 0', fontSize: '20px' }}>{editingEarning ? 'Edit Income' : 'Add Income'}</h3>
             <form onSubmit={handleSubmitIncome}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Date</label>
-                <input type="date" value={incomeDate} onChange={e => setIncomeDate(e.target.value)} required style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
+                <BritishDatePicker label="Date" value={incomeDate} onChange={setIncomeDate} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>💵 Cash</label><input type="number" step="0.01" value={cashAmount} onChange={e => setCashAmount(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} /></div>
@@ -448,7 +573,7 @@ export default function FinancePage() {
             <h3 style={{ margin: '0 0 20px 0', fontSize: '20px' }}>{editingExpense ? 'Edit Expense' : 'Add Expense'}</h3>
             <form onSubmit={handleSubmitExpense}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Date</label><input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} required style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} /></div>
+                <BritishDatePicker label="Date" value={expenseDate} onChange={setExpenseDate} />
                 <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Amount (£)</label><input type="number" step="0.01" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} required placeholder="0.00" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} /></div>
               </div>
               <div style={{ marginBottom: '16px' }}>
@@ -491,12 +616,10 @@ export default function FinancePage() {
             <h3 style={{ margin: '0 0 8px 0', fontSize: '20px' }}>📥 Export to CSV</h3>
             <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#666' }}>Select date range for your accountant or tax records</p>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Start Date</label>
-              <input type="date" value={exportStartDate} onChange={e => setExportStartDate(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
+              <BritishDatePicker label="Start Date" value={exportStartDate} onChange={setExportStartDate} />
             </div>
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>End Date</label>
-              <input type="date" value={exportEndDate} onChange={e => setExportEndDate(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
+              <BritishDatePicker label="End Date" value={exportEndDate} onChange={setExportEndDate} />
             </div>
             <div style={{ backgroundColor: '#f0fdf4', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>
               <p style={{ margin: 0, fontSize: '13px', color: '#166534' }}>✓ Includes earnings, expenses, and category breakdown</p>
