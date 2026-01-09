@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import Link from 'next/link'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -85,7 +86,7 @@ export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'users' | 'news' | 'companies' | 'marketplace' | 'feedback'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'news' | 'blog' | 'companies' | 'marketplace' | 'feedback'>('users')
   
   // Data states
   const [users, setUsers] = useState<Profile[]>([])
@@ -227,13 +228,14 @@ export default function AdminPage() {
           {[
             { id: 'users', label: '👥 Users' },
             { id: 'news', label: '📰 News' },
+            { id: 'blog', label: '📝 Blog' },
             { id: 'companies', label: '🏢 Companies' },
             { id: 'marketplace', label: '🏪 Marketplace' },
             { id: 'feedback', label: '📝 Feedback' }
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => tab.id === 'blog' ? window.location.href = '/admin/blog' : setActiveTab(tab.id as any)}
               style={{
                 padding: '10px 16px',
                 backgroundColor: activeTab === tab.id ? '#eab308' : 'white',
