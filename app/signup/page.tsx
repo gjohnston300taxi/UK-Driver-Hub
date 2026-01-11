@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 
@@ -9,18 +9,56 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+// Allowed countries - UK and Ireland
+const ALLOWED_COUNTRIES = ['GB', 'IE', 'UK']
+
 export default function SignUpPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [checkingLocation, setCheckingLocation] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [locationBlocked, setLocationBlocked] = useState(false)
+  const [userCountry, setUserCountry] = useState('')
+
+  useEffect(() => {
+    checkUserLocation()
+  }, [])
+
+  const checkUserLocation = async () => {
+    try {
+      // Using free IP geolocation API
+      const response = await fetch('https://ipapi.co/json/')
+      const data = await response.json()
+      
+      if (data.country_code) {
+        setUserCountry(data.country_name || data.country_code)
+        
+        if (!ALLOWED_COUNTRIES.includes(data.country_code)) {
+          setLocationBlocked(true)
+        }
+      }
+    } catch (error) {
+      // If geolocation fails, allow signup (fail open for better UX)
+      console.error('Location check failed:', error)
+    } finally {
+      setCheckingLocation(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+
+    // Double-check location before signup
+    if (locationBlocked) {
+      setError('Registration is only available for users in the UK and Ireland.')
+      setLoading(false)
+      return
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
@@ -56,6 +94,92 @@ export default function SignUpPage() {
       // Redirect to onboarding to complete profile
       window.location.href = '/onboarding'
     }
+  }
+
+  // Show loading while checking location
+  if (checkingLocation) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#f3f4f6',
+        padding: '20px'
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          padding: '40px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          width: '100%',
+          maxWidth: '400px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚕</div>
+          <p style={{ color: '#666', margin: 0 }}>Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show blocked message if outside UK/Ireland
+  if (locationBlocked) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        backgroundColor: '#f3f4f6',
+        padding: '20px'
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          padding: '40px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          width: '100%',
+          maxWidth: '450px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🇬🇧</div>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 16px 0' }}>
+            UK & Ireland Only
+          </h2>
+          <p style={{ color: '#666', marginBottom: '16px', lineHeight: '1.6' }}>
+            UK Driver Hub is exclusively for taxi and private hire drivers based in the United Kingdom and Republic of Ireland.
+          </p>
+          <p style={{ color: '#999', marginBottom: '24px', fontSize: '14px' }}>
+            Your location: {userCountry}
+          </p>
+          <div style={{
+            backgroundColor: '#fef3c7',
+            padding: '16px',
+            borderRadius: '8px',
+            marginBottom: '24px'
+          }}>
+            <p style={{ margin: 0, fontSize: '14px', color: '#92400e' }}>
+              If you believe this is an error (e.g., you're using a VPN), please try disabling your VPN and refreshing the page.
+            </p>
+          </div>
+          <Link 
+            href="/"
+            style={{
+              display: 'inline-block',
+              padding: '12px 24px',
+              backgroundColor: '#e5e7eb',
+              color: '#374151',
+              textDecoration: 'none',
+              borderRadius: '8px',
+              fontWeight: '600'
+            }}
+          >
+            Go Back
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   if (success) {
