@@ -1025,7 +1025,7 @@ export default function ResourcesPage() {
                 backgroundColor: '#000'
               }}>
                 <iframe
-                  src="https://www.youtube.com/embed/ZbyqL2zoX54"
+                  src="https://www.youtube.com/embed/FWoGCW-ROx0"
                   title="Be a Useful Driver"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
