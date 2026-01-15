@@ -197,22 +197,24 @@ export default function BlogPostPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
-      {/* Hero Image */}
+      {/* Hero Image - Fixed to show full image without stretching */}
       {post.image_url && (
         <div style={{
           width: '100%',
-          height: '300px',
+          maxHeight: '450px',
           overflow: 'hidden',
-          backgroundColor: '#1f2937'
+          backgroundColor: '#1f2937',
+          display: 'flex',
+          justifyContent: 'center'
         }}>
           <img
             src={post.image_url}
             alt={post.title}
             style={{
               width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              opacity: 0.8
+              maxHeight: '450px',
+              objectFit: 'contain',
+              backgroundColor: '#1f2937'
             }}
           />
         </div>
