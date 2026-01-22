@@ -50,6 +50,10 @@ export default function OnboardingPage() {
   const [licenseType, setLicenseType] = useState('')
   const [experience, setExperience] = useState('')
   const [badgeNumber, setBadgeNumber] = useState('')
+  
+  // Profile image states
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   useEffect(() => {
     checkUser()
@@ -81,6 +85,52 @@ export default function OnboardingPage() {
     setLoading(false)
   }
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be less than 5MB')
+      return
+    }
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload an image file')
+      return
+    }
+
+    setUploadingImage(true)
+    setError('')
+
+    try {
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      setAvatarUrl(publicUrl)
+    } catch (err: any) {
+      setError('Failed to upload image. Please try again.')
+      console.error('Upload error:', err)
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
@@ -101,6 +151,7 @@ export default function OnboardingPage() {
         license_type: licenseType,
         experience,
         badge_number: badgeNumber.trim() || null,
+        avatar_url: avatarUrl,
         updated_at: new Date().toISOString()
       })
 
@@ -152,6 +203,81 @@ export default function OnboardingPage() {
         </div>
 
         <form onSubmit={handleSubmit}>
+          {/* Profile Picture Upload */}
+          <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '12px', 
+              fontWeight: '500',
+              fontSize: '14px'
+            }}>
+              Profile Picture <span style={{ color: '#666', fontWeight: 'normal' }}>(optional)</span>
+            </label>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              {/* Avatar Preview */}
+              <div style={{
+                width: '100px',
+                height: '100px',
+                borderRadius: '50%',
+                backgroundColor: '#f3f4f6',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                border: '3px solid #eab308'
+              }}>
+                {avatarUrl ? (
+                  <img 
+                    src={avatarUrl} 
+                    alt="Profile" 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <span style={{ fontSize: '40px' }}>👤</span>
+                )}
+              </div>
+
+              {/* Upload Button */}
+              <label style={{
+                padding: '8px 16px',
+                backgroundColor: uploadingImage ? '#9ca3af' : '#f3f4f6',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                cursor: uploadingImage ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'inline-block'
+              }}>
+                {uploadingImage ? 'Uploading...' : avatarUrl ? '📷 Change Photo' : '📷 Add Photo'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                  style={{ display: 'none' }}
+                />
+              </label>
+
+              {avatarUrl && (
+                <button
+                  type="button"
+                  onClick={() => setAvatarUrl(null)}
+                  style={{
+                    padding: '4px 12px',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: '#dc2626',
+                    cursor: 'pointer',
+                    fontSize: '13px'
+                  }}
+                >
+                  Remove photo
+                </button>
+              )}
+            </div>
+          </div>
+
           <div style={{ marginBottom: '20px' }}>
             <label style={{ 
               display: 'block', 

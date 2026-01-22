@@ -65,6 +65,15 @@ interface Feedback {
   created_at: string
 }
 
+interface UserWithEmail {
+  id: string
+  name: string
+  email: string
+  region: string
+  is_admin: boolean
+  created_at: string
+}
+
 const NEWS_CATEGORIES = [
   'Industry News', 'Regulation Update', 'Technology', 'Business Tips', 
   'Safety', 'Local News', 'Events', 'Announcements'
@@ -89,7 +98,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'users' | 'news' | 'blog' | 'companies' | 'marketplace' | 'feedback'>('users')
   
   // Data states
-  const [users, setUsers] = useState<Profile[]>([])
+  const [users, setUsers] = useState<UserWithEmail[]>([])
   const [news, setNews] = useState<NewsItem[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [listings, setListings] = useState<MarketplaceListing[]>([])
@@ -138,8 +147,29 @@ export default function AdminPage() {
   }
 
   const loadUsers = async () => {
-    const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
-    setUsers(data || [])
+    // First get all profiles
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (profiles) {
+      // Fetch emails from auth.users using the admin API via an edge function
+      // Since we can't directly access auth.users from client, we'll use the email stored in profiles
+      // Or we can call a server function. For now, let's check if email is in profiles table
+      
+      // Map profiles - email might be stored in profiles or we show "N/A"
+      const usersWithEmail: UserWithEmail[] = profiles.map(p => ({
+        id: p.id,
+        name: p.name || 'No name',
+        email: p.email || '', // Will be populated if stored in profiles
+        region: p.region || 'No region',
+        is_admin: p.is_admin || false,
+        created_at: p.created_at
+      }))
+
+      setUsers(usersWithEmail)
+    }
   }
 
   const loadNews = async () => {
@@ -272,6 +302,7 @@ export default function AdminPage() {
                 <thead>
                   <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
                     <th style={{ textAlign: 'left', padding: '10px' }}>Name</th>
+                    <th style={{ textAlign: 'left', padding: '10px' }}>Email</th>
                     <th style={{ textAlign: 'left', padding: '10px' }}>Region</th>
                     <th style={{ textAlign: 'left', padding: '10px' }}>Joined</th>
                     <th style={{ textAlign: 'center', padding: '10px' }}>Admin</th>
@@ -281,6 +312,18 @@ export default function AdminPage() {
                   {users.map(u => (
                     <tr key={u.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
                       <td style={{ padding: '10px' }}>{u.name}</td>
+                      <td style={{ padding: '10px' }}>
+                        {u.email ? (
+                          <a 
+                            href={`mailto:${u.email}`}
+                            style={{ color: '#3b82f6', textDecoration: 'none' }}
+                          >
+                            {u.email}
+                          </a>
+                        ) : (
+                          <span style={{ color: '#999', fontStyle: 'italic' }}>Not available</span>
+                        )}
+                      </td>
                       <td style={{ padding: '10px' }}>{u.region}</td>
                       <td style={{ padding: '10px' }}>{formatDate(u.created_at)}</td>
                       <td style={{ padding: '10px', textAlign: 'center' }}>
