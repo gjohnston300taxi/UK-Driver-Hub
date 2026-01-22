@@ -91,6 +91,20 @@ export default function SignUpPage() {
         return
       }
       
+      // Save email to profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: data.user.id,
+          email: email,
+          updated_at: new Date().toISOString()
+        })
+
+      if (profileError) {
+        console.error('Error saving email to profile:', profileError)
+        // Don't block signup if this fails, just log it
+      }
+      
       // Redirect to onboarding to complete profile
       window.location.href = '/onboarding'
     }
