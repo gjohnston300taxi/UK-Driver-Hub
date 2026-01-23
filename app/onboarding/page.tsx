@@ -146,6 +146,7 @@ export default function OnboardingPage() {
       .from('profiles')
       .upsert({
         id: user.id,
+        email: user.email,
         name: name.trim(),
         region,
         license_type: licenseType,
