@@ -64,6 +64,16 @@ const isYouTubeUrl = (url: string): boolean => {
   return url.includes('youtube.com') || url.includes('youtu.be')
 }
 
+// Helper to ensure URL has protocol (https://)
+const ensureHttps = (url: string): string => {
+  if (!url) return url
+  url = url.trim()
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  return 'https://' + url
+}
+
 // Resize image function
 const resizeImage = (file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -356,10 +366,13 @@ export default function FeedPage() {
       if (!imageUrl) { alert('Failed to upload image. Please try again.'); setPosting(false); return }
     }
 
+    // Ensure link has https:// if provided
+    const linkUrl = newPostLink.trim() ? ensureHttps(newPostLink.trim()) : null
+
     const { error } = await supabase.from('posts').insert([{
       author_id: user.id,
       content: newPostContent.trim(),
-      link_url: newPostLink.trim() || null,
+      link_url: linkUrl,
       image_url: imageUrl,
       region: profile.region
     }])
@@ -401,11 +414,14 @@ export default function FeedPage() {
     if (!editPostContent.trim()) { alert('Post content cannot be empty'); return }
     if (editPostContent.length > 1000) { alert('Post must be 1000 characters or less'); return }
 
+    // Ensure link has https:// if provided
+    const linkUrl = editPostLink.trim() ? ensureHttps(editPostLink.trim()) : null
+
     const { error } = await supabase
       .from('posts')
       .update({
         content: editPostContent.trim(),
-        link_url: editPostLink.trim() || null
+        link_url: linkUrl
       })
       .eq('id', postId)
 
@@ -742,9 +758,9 @@ export default function FeedPage() {
                   </div>
                 )}
 
-                {/* Regular Link */}
+                {/* Regular Link - NOW WITH ensureHttps() */}
                 {post.link_url && !youtubeId && !isEditing && (
-                  <a href={post.link_url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '10px', backgroundColor: '#f9fafb', borderRadius: '8px', marginBottom: '12px', textDecoration: 'none', border: '1px solid #e5e7eb' }}>
+                  <a href={ensureHttps(post.link_url)} target="_blank" rel="noopener noreferrer" style={{ display: 'block', padding: '10px', backgroundColor: '#f9fafb', borderRadius: '8px', marginBottom: '12px', textDecoration: 'none', border: '1px solid #e5e7eb' }}>
                     <div style={{ color: '#2563eb', fontSize: '13px', wordBreak: 'break-all' }}>🔗 {post.link_url}</div>
                   </a>
                 )}
