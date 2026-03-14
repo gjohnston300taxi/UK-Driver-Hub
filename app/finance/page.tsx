@@ -56,14 +56,12 @@ const EXPENSE_CATEGORIES = [
 
 // British Date Picker Component
 function BritishDatePicker({ value, onChange, label }: { value: string, onChange: (date: string) => void, label?: string }) {
-  // Convert YYYY-MM-DD to DD/MM/YYYY for display
   const formatForDisplay = (isoDate: string) => {
     if (!isoDate) return ''
     const [year, month, day] = isoDate.split('-')
     return `${day}/${month}/${year}`
   }
 
-  // Convert DD/MM/YYYY to YYYY-MM-DD for storage
   const parseFromDisplay = (britishDate: string) => {
     const parts = britishDate.split('/')
     if (parts.length === 3) {
@@ -83,30 +81,17 @@ function BritishDatePicker({ value, onChange, label }: { value: string, onChange
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let input = e.target.value.replace(/[^\d/]/g, '')
-    
-    // Auto-add slashes
-    if (input.length === 2 && !input.includes('/')) {
-      input = input + '/'
-    } else if (input.length === 5 && input.split('/').length === 2) {
-      input = input + '/'
-    }
-    
-    // Limit length
+    if (input.length === 2 && !input.includes('/')) input = input + '/'
+    else if (input.length === 5 && input.split('/').length === 2) input = input + '/'
     if (input.length > 10) input = input.slice(0, 10)
-    
     setDisplayValue(input)
-    
-    // Try to parse and update parent
     if (input.length === 10) {
       const isoDate = parseFromDisplay(input)
-      if (isoDate) {
-        onChange(isoDate)
-      }
+      if (isoDate) onChange(isoDate)
     }
   }
 
   const handleBlur = () => {
-    // Validate on blur
     const isoDate = parseFromDisplay(displayValue)
     if (isoDate) {
       const date = new Date(isoDate)
@@ -117,7 +102,6 @@ function BritishDatePicker({ value, onChange, label }: { value: string, onChange
     }
   }
 
-  // Also support native date picker as fallback
   const handleNativeDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const isoDate = e.target.value
     if (isoDate) {
@@ -136,42 +120,173 @@ function BritishDatePicker({ value, onChange, label }: { value: string, onChange
           onChange={handleChange}
           onBlur={handleBlur}
           placeholder="DD/MM/YYYY"
-          style={{
-            width: '100%',
-            padding: '10px 40px 10px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: '8px',
-            fontSize: '14px',
-            boxSizing: 'border-box'
-          }}
+          style={{ width: '100%', padding: '10px 40px 10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
         />
         <input
           type="date"
           value={value}
           onChange={handleNativeDateChange}
-          style={{
-            position: 'absolute',
-            right: '8px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: '24px',
-            height: '24px',
-            opacity: 0,
-            cursor: 'pointer'
-          }}
+          style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', width: '24px', height: '24px', opacity: 0, cursor: 'pointer' }}
         />
-        <span style={{
-          position: 'absolute',
-          right: '12px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          pointerEvents: 'none',
-          fontSize: '16px'
-        }}>📅</span>
+        <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '16px' }}>📅</span>
       </div>
     </div>
   )
 }
+
+// ── Tax Estimator Component ──────────────────────────────────────────────────
+function TaxEstimator() {
+  const [income, setIncome] = useState(30000)
+  const [expenses, setExpenses] = useState(5000)
+  const [tab, setTab] = useState<'annual' | 'monthly' | 'weekly'>('annual')
+
+  const profit = Math.max(0, income - expenses)
+  const PA = 12570
+  const basicLimit = 50270
+  const higherLimit = 125140
+  const taxable = Math.max(0, profit - PA)
+  const basicBand = Math.min(taxable, basicLimit - PA)
+  const higherBand = Math.min(Math.max(0, taxable - (basicLimit - PA)), higherLimit - basicLimit)
+  const additionalBand = Math.max(0, taxable - (higherLimit - PA))
+  const itBasic = basicBand * 0.20
+  const itHigher = higherBand * 0.40
+  const itAdditional = additionalBand * 0.45
+  const totalIT = itBasic + itHigher + itAdditional
+  const NI_LOWER = 12570, NI_UPPER = 50270
+  const ni = profit > NI_LOWER ? (Math.min(profit, NI_UPPER) - NI_LOWER) * 0.09 + Math.max(0, profit - NI_UPPER) * 0.02 : 0
+  const totalTax = totalIT + ni
+  const takehome = income - expenses - totalTax
+  const effectiveRate = income > 0 ? (totalTax / income * 100) : 0
+
+  const fmt = (n: number) => `£${Math.round(n).toLocaleString('en-GB')}`
+  const divide = (n: number, d: number) => fmt(n / d)
+
+  const inputStyle = { width: '100%', padding: '10px 12px 10px 22px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const }
+  const cardStyle = { backgroundColor: '#f9fafb', borderRadius: '8px', padding: '14px', textAlign: 'center' as const }
+  const tabBtn = (t: typeof tab) => ({
+    padding: '8px 18px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' as const, fontSize: '13px',
+    backgroundColor: tab === t ? '#0ea5e9' : 'transparent', color: tab === t ? 'white' : '#666'
+  })
+
+  return (
+    <div>
+      {/* Inputs */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+        <div>
+          <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Annual driving income</label>
+          <div style={{ position: 'relative' }}>
+            <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }}>£</span>
+            <input type="number" value={income} min={0} step={100} onChange={e => setIncome(parseFloat(e.target.value) || 0)} style={inputStyle} />
+          </div>
+        </div>
+        <div>
+          <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Annual allowable expenses</label>
+          <div style={{ position: 'relative' }}>
+            <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }}>£</span>
+            <input type="number" value={expenses} min={0} step={100} onChange={e => setExpenses(parseFloat(e.target.value) || 0)} style={inputStyle} />
+          </div>
+        </div>
+      </div>
+      <p style={{ margin: '0 0 20px 0', fontSize: '12px', color: '#9ca3af' }}>Expenses include fuel, insurance, phone, maintenance, etc.</p>
+
+      {/* Tabs */}
+      <div style={{ backgroundColor: '#f3f4f6', borderRadius: '10px', padding: '4px', display: 'inline-flex', gap: '4px', marginBottom: '16px' }}>
+        <button style={tabBtn('annual')} onClick={() => setTab('annual')}>Annual</button>
+        <button style={tabBtn('monthly')} onClick={() => setTab('monthly')}>Monthly</button>
+        <button style={tabBtn('weekly')} onClick={() => setTab('weekly')}>Weekly</button>
+      </div>
+
+      {/* Annual */}
+      {tab === 'annual' && (
+        <div>
+          <div style={{ marginBottom: '16px' }}>
+            {[
+              ['Gross income', fmt(income)],
+              ['Allowable expenses', `−${fmt(expenses)}`],
+              ['Taxable profit', fmt(profit)],
+              ['Personal allowance', `−${fmt(Math.min(profit, PA))}`],
+              ['Taxable amount', fmt(taxable)],
+              ...(basicBand > 0 ? [['Basic rate (20%)', fmt(itBasic)]] : []),
+              ...(higherBand > 0 ? [['Higher rate (40%)', fmt(itHigher)]] : []),
+              ...(additionalBand > 0 ? [['Additional rate (45%)', fmt(itAdditional)]] : []),
+              ['Class 4 NI', fmt(ni)],
+            ].map(([label, value]) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', padding: '5px 0', borderBottom: '1px solid #f3f4f6' }}>
+                <span style={{ color: '#6b7280' }}>{label}</span>
+                <span style={{ fontWeight: '500' }}>{value}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>Income Tax</p><p style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>{fmt(totalIT)}</p></div>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>National Insurance</p><p style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>{fmt(ni)}</p></div>
+          </div>
+          <div style={{ ...cardStyle, marginTop: '10px', backgroundColor: '#fef3c7', border: '1px solid #fbbf24' }}>
+            <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#92400e' }}>Total tax due (annual)</p>
+            <p style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: '#92400e' }}>{fmt(totalTax)}</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>Take-home (est.)</p><p style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#16a34a' }}>{fmt(takehome)}</p></div>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>Effective tax rate</p><p style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>{effectiveRate.toFixed(1)}%</p></div>
+          </div>
+        </div>
+      )}
+
+      {/* Monthly */}
+      {tab === 'monthly' && (
+        <div>
+          <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#6b7280' }}>Based on your annual figures divided across 12 months.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px' }}>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>Income</p><p style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{divide(income, 12)}</p></div>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>Expenses</p><p style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{divide(expenses, 12)}</p></div>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>Profit</p><p style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{divide(profit, 12)}</p></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>Income Tax</p><p style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>{divide(totalIT, 12)}</p></div>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>National Insurance</p><p style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>{divide(ni, 12)}</p></div>
+          </div>
+          <div style={{ ...cardStyle, marginTop: '10px', backgroundColor: '#fef3c7', border: '1px solid #fbbf24' }}>
+            <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#92400e' }}>Total tax due (monthly)</p>
+            <p style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: '#92400e' }}>{divide(totalTax, 12)}</p>
+          </div>
+          <div style={{ ...cardStyle, marginTop: '10px' }}>
+            <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#6b7280' }}>Monthly take-home (est.)</p>
+            <p style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: '#16a34a' }}>{divide(takehome, 12)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Weekly */}
+      {tab === 'weekly' && (
+        <div>
+          <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#6b7280' }}>Based on your annual figures divided across 52 weeks.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px' }}>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>Income</p><p style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{divide(income, 52)}</p></div>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>Expenses</p><p style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{divide(expenses, 52)}</p></div>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>Profit</p><p style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{divide(profit, 52)}</p></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>Income Tax</p><p style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>{divide(totalIT, 52)}</p></div>
+            <div style={cardStyle}><p style={{ margin: '0 0 4px', fontSize: '12px', color: '#6b7280' }}>National Insurance</p><p style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>{divide(ni, 52)}</p></div>
+          </div>
+          <div style={{ ...cardStyle, marginTop: '10px', backgroundColor: '#fef3c7', border: '1px solid #fbbf24' }}>
+            <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#92400e' }}>Total tax due (weekly)</p>
+            <p style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: '#92400e' }}>{divide(totalTax, 52)}</p>
+          </div>
+          <div style={{ ...cardStyle, marginTop: '10px' }}>
+            <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#6b7280' }}>Weekly take-home (est.)</p>
+            <p style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: '#16a34a' }}>{divide(takehome, 52)}</p>
+          </div>
+        </div>
+      )}
+
+      <p style={{ margin: '16px 0 0', fontSize: '11px', color: '#9ca3af', lineHeight: '1.5' }}>
+        Estimate only. Based on 2024/25 UK tax rates for self-employed sole traders. Does not constitute financial or legal advice. Consult a qualified accountant for your Self Assessment return.
+      </p>
+    </div>
+  )
+}
+// ── End Tax Estimator ────────────────────────────────────────────────────────
 
 export default function FinancePage() {
   const [user, setUser] = useState<any>(null)
@@ -204,6 +319,7 @@ export default function FinancePage() {
   const [exportEndDate, setExportEndDate] = useState('')
   const [showClaimsModal, setShowClaimsModal] = useState(false)
   const [showHighEarnerModal, setShowHighEarnerModal] = useState(false)
+  const [showTaxEstimatorModal, setShowTaxEstimatorModal] = useState(false) // NEW
 
   useEffect(() => { loadUser() }, [])
   useEffect(() => { if (user) loadData() }, [user, timeframe])
@@ -286,7 +402,7 @@ export default function FinancePage() {
     const card = parseFloat(cardAmount) || 0, app = parseFloat(appAmount) || 0
     const totalFares = cash + account + card + app
     const { data: existing } = await supabase.from('earnings_daily').select('*').eq('user_id', user.id).eq('date', incomeDate).single()
-    
+
     if (existing && !editingEarning) {
       await supabase.from('earnings_daily').update({
         total_jobs: existing.total_jobs + 1, cash_amount: Number(existing.cash_amount) + cash,
@@ -368,29 +484,28 @@ export default function FinancePage() {
   const exportCSV = async () => {
     const { data: earningsData } = await supabase.from('earnings_daily').select('*').eq('user_id', user.id).gte('date', exportStartDate).lte('date', exportEndDate).order('date', { ascending: true })
     const { data: expensesData } = await supabase.from('expense_entries').select('*').eq('user_id', user.id).gte('date', exportStartDate).lte('date', exportEndDate).order('date', { ascending: true })
-    
+
     const exportEarnings = earningsData || []
     const exportExpenses = expensesData || []
-    
+
     const expTotalEarnings = exportEarnings.reduce((sum, e) => sum + Number(e.total_fares), 0)
     const expTotalExpenses = exportExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
     const expNetIncome = expTotalEarnings - expTotalExpenses
     const expTotalJobs = exportEarnings.reduce((sum, e) => sum + e.total_jobs, 0)
-    
-    // Format dates as DD/MM/YYYY in CSV
+
     const formatDateForCSV = (isoDate: string) => {
       const [year, month, day] = isoDate.split('-')
       return `${day}/${month}/${year}`
     }
-    
+
     let csv = `Taxi Finance Report\nPeriod: ${formatDateForCSV(exportStartDate)} to ${formatDateForCSV(exportEndDate)}\nGenerated: ${new Date().toLocaleDateString('en-GB')}\n\n`
     csv += 'Date,Type,Category,Description,Cash,Account,Card,App,Total Fares,Expense Amount,Jobs,Notes,Company\n'
-    
+
     const allDates = new Set<string>()
     exportEarnings.forEach(e => allDates.add(e.date))
     exportExpenses.forEach(e => allDates.add(e.date))
     const sortedDates = Array.from(allDates).sort()
-    
+
     sortedDates.forEach(date => {
       const dayEarning = exportEarnings.find(e => e.date === date)
       const dayExpenses = exportExpenses.filter(e => e.date === date)
@@ -398,19 +513,19 @@ export default function FinancePage() {
       if (dayEarning) csv += `${formattedDate},Income,,,"${dayEarning.cash_amount}","${dayEarning.account_amount}","${dayEarning.card_amount}","${dayEarning.app_amount}","${dayEarning.total_fares}",,"${dayEarning.total_jobs}","${dayEarning.notes || ''}","${dayEarning.company || ''}"\n`
       dayExpenses.forEach(exp => csv += `${formattedDate},Expense,"${getCategoryLabel(exp.category)}","${exp.description || ''}",,,,,,"${exp.amount}",,,\n`)
     })
-    
+
     csv += `\n--- SUMMARY ---\n`
     csv += `Total Earnings,£${expTotalEarnings.toFixed(2)}\n`
     csv += `Total Expenses,£${expTotalExpenses.toFixed(2)}\n`
     csv += `Net Income,£${expNetIncome.toFixed(2)}\n`
     csv += `Total Jobs,${expTotalJobs}\n`
-    
+
     csv += `\n--- EXPENSES BY CATEGORY ---\n`
     EXPENSE_CATEGORIES.forEach(cat => {
       const catTotal = exportExpenses.filter(e => e.category === cat.id).reduce((sum, e) => sum + Number(e.amount), 0)
       if (catTotal > 0) csv += `${cat.label},£${catTotal.toFixed(2)}\n`
     })
-    
+
     const blob = new Blob([csv], { type: 'text/csv' })
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
     a.download = `taxi-finance-${exportStartDate}-to-${exportEndDate}.csv`; a.click()
@@ -433,6 +548,8 @@ export default function FinancePage() {
             <button onClick={openExportModal} style={{ padding: '10px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>📥 Export CSV</button>
             <button onClick={() => setShowClaimsModal(true)} style={{ padding: '10px 16px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>❓ What to Claim</button>
             <button onClick={() => setShowHighEarnerModal(true)} style={{ padding: '10px 16px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>💷 Over £50k</button>
+            {/* NEW TAX ESTIMATOR BUTTON */}
+            <button onClick={() => setShowTaxEstimatorModal(true)} style={{ padding: '10px 16px', backgroundColor: '#f97316', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>🧮 Tax Estimator</button>
           </div>
         </div>
 
@@ -532,6 +649,24 @@ export default function FinancePage() {
           </div>
         )}
       </main>
+
+      {/* ── TAX ESTIMATOR MODAL (NEW) ─────────────────────────────────────── */}
+      {showTaxEstimatorModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflow: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '20px' }}>🧮 Tax Estimator</h3>
+              <button onClick={() => setShowTaxEstimatorModal(false)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}>×</button>
+            </div>
+            <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#6b7280', backgroundColor: '#fef3c7', padding: '10px 12px', borderRadius: '8px' }}>
+              💡 Enter your expected annual income and expenses to see an estimate of what you may owe HMRC.
+            </p>
+            <TaxEstimator />
+            <button onClick={() => setShowTaxEstimatorModal(false)} style={{ width: '100%', marginTop: '20px', padding: '14px', backgroundColor: '#f97316', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Close</button>
+          </div>
+        </div>
+      )}
+      {/* ── END TAX ESTIMATOR MODAL ──────────────────────────────────────── */}
 
       {showIncomeModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
@@ -639,92 +774,27 @@ export default function FinancePage() {
               <h3 style={{ margin: 0, fontSize: '20px' }}>❓ What Can Taxi Drivers Claim?</h3>
               <button onClick={() => setShowClaimsModal(false)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}>×</button>
             </div>
-            
             <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#666', backgroundColor: '#fef3c7', padding: '12px', borderRadius: '8px' }}>
               💡 You can claim expenses that are <strong>wholly and exclusively</strong> for your taxi work.
             </p>
-
             <div style={{ display: 'grid', gap: '16px' }}>
-              <div style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '15px' }}>1️⃣ Vehicle & Driving Costs</h4>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#166534' }}>
-                  <li>Fuel</li>
-                  <li>Insurance (hire & reward / business use)</li>
-                  <li>Repairs and servicing</li>
-                  <li>Tyres, MOT, Road tax</li>
-                  <li>Vehicle rent or lease (business use)</li>
-                </ul>
-              </div>
-
-              <div style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '15px' }}>2️⃣ Platform, Operator & Work Fees</h4>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#166534' }}>
-                  <li>Platform or app commission</li>
-                  <li>Operator or dispatch fees</li>
-                  <li>Card processing fees</li>
-                  <li>Weekly vehicle rent (if applicable)</li>
-                </ul>
-              </div>
-
-              <div style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '15px' }}>3️⃣ Licensing & Compliance</h4>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#166534' }}>
-                  <li>Taxi / PHV licence fees</li>
-                  <li>Council badge renewals</li>
-                  <li>DBS checks</li>
-                  <li>Medical exams required for licensing</li>
-                  <li>Compliance tests</li>
-                </ul>
-              </div>
-
-              <div style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '15px' }}>4️⃣ Phone & Work Technology</h4>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#166534' }}>
-                  <li>Business portion of mobile phone bills & data plans</li>
-                  <li>Dash cams</li>
-                  <li>Sat nav</li>
-                  <li>Phone mounts and chargers</li>
-                </ul>
-              </div>
-
-              <div style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '15px' }}>5️⃣ Insurance</h4>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#166534' }}>
-                  <li>Hire & reward insurance</li>
-                  <li>Public liability insurance</li>
-                  <li>Other work-related insurance policies</li>
-                </ul>
-              </div>
-
-              <div style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '15px' }}>6️⃣ Cleaning & Vehicle Supplies</h4>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#166534' }}>
-                  <li>Car washes & valeting</li>
-                  <li>Cleaning products</li>
-                  <li>Air fresheners</li>
-                  <li>Protective mats or seat covers</li>
-                </ul>
-              </div>
-
-              <div style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '15px' }}>7️⃣ Professional & Admin Costs</h4>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#166534' }}>
-                  <li>Accountant fees</li>
-                  <li>Bookkeeping or MTD software</li>
-                  <li>Business bank charges</li>
-                </ul>
-              </div>
-
-              <div style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '15px' }}>8️⃣ Parking, Tolls & Road Charges</h4>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#166534' }}>
-                  <li>Parking fees while working</li>
-                  <li>Toll charges</li>
-                  <li>Congestion charges (business journeys only)</li>
-                </ul>
-                <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#dc2626' }}>❌ Fines and penalties cannot be claimed</p>
-              </div>
-
+              {[
+                { title: '1️⃣ Vehicle & Driving Costs', items: ['Fuel', 'Insurance (hire & reward / business use)', 'Repairs and servicing', 'Tyres, MOT, Road tax', 'Vehicle rent or lease (business use)'] },
+                { title: '2️⃣ Platform, Operator & Work Fees', items: ['Platform or app commission', 'Operator or dispatch fees', 'Card processing fees', 'Weekly vehicle rent (if applicable)'] },
+                { title: '3️⃣ Licensing & Compliance', items: ['Taxi / PHV licence fees', 'Council badge renewals', 'DBS checks', 'Medical exams required for licensing', 'Compliance tests'] },
+                { title: '4️⃣ Phone & Work Technology', items: ['Business portion of mobile phone bills & data plans', 'Dash cams', 'Sat nav', 'Phone mounts and chargers'] },
+                { title: '5️⃣ Insurance', items: ['Hire & reward insurance', 'Public liability insurance', 'Other work-related insurance policies'] },
+                { title: '6️⃣ Cleaning & Vehicle Supplies', items: ['Car washes & valeting', 'Cleaning products', 'Air fresheners', 'Protective mats or seat covers'] },
+                { title: '7️⃣ Professional & Admin Costs', items: ['Accountant fees', 'Bookkeeping or MTD software', 'Business bank charges'] },
+                { title: '8️⃣ Parking, Tolls & Road Charges', items: ['Parking fees while working', 'Toll charges', 'Congestion charges (business journeys only)'] },
+              ].map(({ title, items }) => (
+                <div key={title} style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px' }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '15px' }}>{title}</h4>
+                  <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#166534' }}>
+                    {items.map(i => <li key={i}>{i}</li>)}
+                  </ul>
+                </div>
+              ))}
               <div style={{ backgroundColor: '#fef3c7', padding: '16px', borderRadius: '12px' }}>
                 <h4 style={{ margin: '0 0 8px 0', fontSize: '15px' }}>9️⃣ Overnight Stays (Important Exception)</h4>
                 <p style={{ margin: '0 0 8px 0', fontSize: '13px' }}>You can claim accommodation and food <strong>only if</strong>:</p>
@@ -735,28 +805,13 @@ export default function FinancePage() {
                 </ul>
                 <p style={{ margin: 0, fontSize: '12px', color: '#92400e' }}>⚠️ Does not apply to normal long shifts where you return home</p>
               </div>
-
-              <div style={{ backgroundColor: '#f0fdf4', padding: '16px', borderRadius: '12px' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '15px' }}>🔟 Home Working (Limited)</h4>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#166534' }}>
-                  <li>A small home-working allowance if you do admin at home</li>
-                  <li>Must be reasonable and limited</li>
-                </ul>
-              </div>
-
               <div style={{ backgroundColor: '#fee2e2', padding: '16px', borderRadius: '12px' }}>
                 <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: '#dc2626' }}>❌ What You CANNOT Claim</h4>
                 <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#dc2626' }}>
-                  <li>Everyday clothes or shoes</li>
-                  <li>Haircuts or grooming</li>
-                  <li>Normal food and drinks</li>
-                  <li>Household bills</li>
-                  <li>Personal travel</li>
-                  <li>Parking fines or penalties</li>
+                  {['Everyday clothes or shoes', 'Haircuts or grooming', 'Normal food and drinks', 'Household bills', 'Personal travel', 'Parking fines or penalties'].map(i => <li key={i}>{i}</li>)}
                 </ul>
               </div>
             </div>
-
             <button onClick={() => setShowClaimsModal(false)} style={{ width: '100%', marginTop: '20px', padding: '14px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Got it!</button>
           </div>
         </div>
@@ -769,58 +824,34 @@ export default function FinancePage() {
               <h3 style={{ margin: 0, fontSize: '20px' }}>💷 Profit Over £50,000?</h3>
               <button onClick={() => setShowHighEarnerModal(false)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}>×</button>
             </div>
-            
             <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#666', backgroundColor: '#e0f2fe', padding: '12px', borderRadius: '8px' }}>
               💡 If your profit (after expenses) is over £50,000 a year, there are some important things you should know.
             </p>
-
             <div style={{ display: 'grid', gap: '16px' }}>
-              <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #0ea5e9' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: '#0369a1' }}>1️⃣ Your Tax Matters More at This Level</h4>
-                <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>
-                  At this profit level, tax and National Insurance take a much bigger share. Small mistakes or missed expenses can cost you a lot of money.
-                </p>
-              </div>
-
-              <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #0ea5e9' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: '#0369a1' }}>2️⃣ Review How You're Set Up</h4>
-                <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>
-                  Most drivers start as sole traders, which is fine. But once profits go over £50,000, it's worth reviewing whether staying as a sole trader still makes sense or whether a <strong>Limited Company</strong> should be considered.
-                </p>
-              </div>
-
+              {[
+                { color: '#f8fafc', border: '#0ea5e9', titleColor: '#0369a1', title: '1️⃣ Your Tax Matters More at This Level', text: 'At this profit level, tax and National Insurance take a much bigger share. Small mistakes or missed expenses can cost you a lot of money.' },
+                { color: '#f8fafc', border: '#0ea5e9', titleColor: '#0369a1', title: '2️⃣ Review How You\'re Set Up', text: 'Most drivers start as sole traders, which is fine. But once profits go over £50,000, it\'s worth reviewing whether staying as a sole trader still makes sense or whether a Limited Company should be considered.' },
+                { color: '#f8fafc', border: '#0ea5e9', titleColor: '#0369a1', title: '4️⃣ Cash Planning Becomes Important', text: 'At this level, tax bills can be large. You should be setting money aside regularly and have a rough idea of what you\'ll owe before the bill arrives.' },
+              ].map(({ color, border, titleColor, title, text }) => (
+                <div key={title} style={{ backgroundColor: color, padding: '16px', borderRadius: '12px', borderLeft: `4px solid ${border}` }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: titleColor }}>{title}</h4>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#475569' }} dangerouslySetInnerHTML={{ __html: text }} />
+                </div>
+              ))}
               <div style={{ backgroundColor: '#fef3c7', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #f59e0b' }}>
                 <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: '#92400e' }}>3️⃣ Making Tax Digital (MTD) Will Apply to You</h4>
-                <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#78350f' }}>
-                  From <strong>April 2026</strong>, drivers with higher income will need to:
-                </p>
+                <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#78350f' }}>From <strong>April 2026</strong>, drivers with higher income will need to:</p>
                 <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#78350f' }}>
                   <li>Keep digital records</li>
                   <li>Submit quarterly updates to HMRC</li>
                 </ul>
-                <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#78350f' }}>
-                  This means you'll need suitable software or professional help.
-                </p>
               </div>
-
-              <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #0ea5e9' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: '#0369a1' }}>4️⃣ Cash Planning Becomes Important</h4>
-                <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>
-                  At this level, tax bills can be large. You should be setting money aside regularly and have a rough idea of what you'll owe before the bill arrives.
-                </p>
-              </div>
-
               <div style={{ backgroundColor: '#dcfce7', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #16a34a' }}>
                 <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: '#166534' }}>5️⃣ Professional Advice is Strongly Recommended</h4>
-                <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#166534' }}>
-                  If your profit is over £50,000, you should speak to a <strong>certified accountant</strong> before making any changes. An accountant can help you decide what's best for your situation and make sure everything is done correctly.
-                </p>
-                <p style={{ margin: 0, fontSize: '13px', color: '#166534', fontWeight: '600' }}>
-                  💼 If you don't already have an accountant, let us know and we can recommend one.
-                </p>
+                <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#166534' }}>If your profit is over £50,000, you should speak to a <strong>certified accountant</strong> before making any changes.</p>
+                <p style={{ margin: 0, fontSize: '13px', color: '#166534', fontWeight: '600' }}>💼 If you don't already have an accountant, let us know and we can recommend one.</p>
               </div>
             </div>
-
             <button onClick={() => setShowHighEarnerModal(false)} style={{ width: '100%', marginTop: '20px', padding: '14px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Got it!</button>
           </div>
         </div>
