@@ -320,6 +320,8 @@ export default function FinancePage() {
   const [showClaimsModal, setShowClaimsModal] = useState(false)
   const [showHighEarnerModal, setShowHighEarnerModal] = useState(false)
   const [showTaxEstimatorModal, setShowTaxEstimatorModal] = useState(false) // NEW
+  const [hoursPerDay, setHoursPerDay] = useState('')
+  const [daysPerWeek, setDaysPerWeek] = useState('')
 
   useEffect(() => { loadUser() }, [])
   useEffect(() => { if (user) loadData() }, [user, timeframe])
@@ -589,6 +591,73 @@ export default function FinancePage() {
             <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold' }}>{totalJobs}</p>
           </div>
         </div>
+
+        {/* ── HOURLY RATE SECTION ───────────────────────────────────────── */}
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>⏱️ Hourly Earning Rate</h3>
+          <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#666' }}>Enter your hours to see what you earn per hour after expenses.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>Hours per day</label>
+              <input
+                type="number"
+                value={hoursPerDay}
+                onChange={e => setHoursPerDay(e.target.value)}
+                placeholder="e.g. 8"
+                min="0" max="24" step="0.5"
+                style={{ width: '100%', padding: '14px 12px', border: '2px solid #e5e7eb', borderRadius: '10px', fontSize: '18px', fontWeight: '600', boxSizing: 'border-box', textAlign: 'center' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>Days per week</label>
+              <input
+                type="number"
+                value={daysPerWeek}
+                onChange={e => setDaysPerWeek(e.target.value)}
+                placeholder="e.g. 5"
+                min="0" max="7" step="0.5"
+                style={{ width: '100%', padding: '14px 12px', border: '2px solid #e5e7eb', borderRadius: '10px', fontSize: '18px', fontWeight: '600', boxSizing: 'border-box', textAlign: 'center' }}
+              />
+            </div>
+          </div>
+          {(() => {
+            const hpd = parseFloat(hoursPerDay) || 0
+            const dpw = parseFloat(daysPerWeek) || 0
+            const totalWeeklyHours = hpd * dpw
+            const totalAnnualHours = totalWeeklyHours * 52
+            const hourlyGross = totalAnnualHours > 0 ? totalEarnings / totalAnnualHours * (timeframe === 'week' ? 52 : timeframe === 'month' ? 12 : 1) : 0
+            const hourlyNet = totalAnnualHours > 0 ? netIncome / totalAnnualHours * (timeframe === 'week' ? 52 : timeframe === 'month' ? 12 : 1) : 0
+            if (hpd === 0 || dpw === 0) return (
+              <div style={{ backgroundColor: '#f9fafb', borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: '14px', color: '#9ca3af' }}>Enter your hours above to see your hourly rate</p>
+              </div>
+            )
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                <div style={{ backgroundColor: '#f0fdf4', borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
+                  <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#166534', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hourly (before expenses)</p>
+                  <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#16a34a' }}>{formatCurrency(hourlyGross)}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#166534' }}>per hour</p>
+                </div>
+                <div style={{ backgroundColor: '#eff6ff', borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
+                  <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#1d4ed8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hourly (after expenses)</p>
+                  <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#2563eb' }}>{formatCurrency(hourlyNet)}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#1d4ed8' }}>per hour</p>
+                </div>
+                <div style={{ backgroundColor: '#fef3c7', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
+                  <p style={{ margin: '0 0 2px 0', fontSize: '12px', color: '#92400e', fontWeight: '600' }}>Hours per week</p>
+                  <p style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#92400e' }}>{totalWeeklyHours.toFixed(1)}h</p>
+                </div>
+                <div style={{ backgroundColor: '#fef3c7', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
+                  <p style={{ margin: '0 0 2px 0', fontSize: '12px', color: '#92400e', fontWeight: '600' }}>Hours per year</p>
+                  <p style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#92400e' }}>{totalAnnualHours.toLocaleString('en-GB')}h</p>
+                </div>
+              </div>
+            )
+          })()}
+          <p style={{ margin: '12px 0 0 0', fontSize: '11px', color: '#9ca3af' }}>Based on your {timeframe === 'week' ? 'last 7 days' : timeframe === 'month' ? 'this month' : 'all time'} earnings data. Hourly rate is estimated from your current period.</p>
+        </div>
+        {/* ── END HOURLY RATE SECTION ───────────────────────────────────── */}
 
         <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Daily Breakdown</h3>
         {dailyData.length === 0 ? (
