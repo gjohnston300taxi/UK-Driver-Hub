@@ -542,12 +542,12 @@ export default function FinancePage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 8px 0' }}>💰 Finance Tracker</h2>
-            <p style={{ color: '#666', margin: 0 }}>Track your earnings and expenses • MTD Ready for April 2026</p>
+            <p style={{ color: '#666', margin: 0 }}>Know exactly what you're earning — and keep HMRC happy</p>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button onClick={() => openIncomeModal()} style={{ padding: '10px 16px', backgroundColor: '#eab308', color: 'black', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>+ Add Income</button>
             <button onClick={() => openExpenseModal()} style={{ padding: '10px 16px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>+ Add Expense</button>
-            <button onClick={openExportModal} style={{ padding: '10px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>📥 Export CSV</button>
+            <button onClick={openExportModal} style={{ padding: '10px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>📥 Download for Accountant</button>
             <button onClick={() => setShowClaimsModal(true)} style={{ padding: '10px 16px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>❓ What to Claim</button>
             <button onClick={() => setShowHighEarnerModal(true)} style={{ padding: '10px 16px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>💷 Over £50k</button>
             {/* NEW TAX ESTIMATOR BUTTON */}
@@ -662,7 +662,7 @@ export default function FinancePage() {
         <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Daily Breakdown</h3>
         {dailyData.length === 0 ? (
           <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '60px 20px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <p style={{ color: '#666', margin: 0 }}>No data for this period. Start by adding your income or expenses!</p>
+            <p style={{ color: '#666', margin: 0 }}>Nothing here yet — add today's earnings and start tracking your money!</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gap: '16px' }}>
@@ -728,7 +728,7 @@ export default function FinancePage() {
               <button onClick={() => setShowTaxEstimatorModal(false)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666' }}>×</button>
             </div>
             <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#6b7280', backgroundColor: '#fef3c7', padding: '10px 12px', borderRadius: '8px' }}>
-              💡 Enter your expected annual income and expenses to see an estimate of what you may owe HMRC.
+              💡 See roughly how much to put aside for your tax bill — based on what you earn and spend.
             </p>
             <TaxEstimator />
             <button onClick={() => setShowTaxEstimatorModal(false)} style={{ width: '100%', marginTop: '20px', padding: '14px', backgroundColor: '#f97316', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Close</button>
@@ -740,31 +740,34 @@ export default function FinancePage() {
       {showIncomeModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflow: 'auto' }}>
-            <h3 style={{ margin: '0 0 20px 0', fontSize: '20px' }}>{editingEarning ? 'Edit Income' : 'Add Income'}</h3>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '20px' }}>{editingEarning ? '✏️ Edit Earnings' : '💰 Record Today\'s Earnings'}</h3>
+            <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#666' }}>Enter what you took today in each payment type — only fill in what applies.</p>
             <form onSubmit={handleSubmitIncome}>
               <div style={{ marginBottom: '16px' }}>
                 <BritishDatePicker label="Date" value={incomeDate} onChange={setIncomeDate} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>💵 Cash</label><input type="number" step="0.01" value={cashAmount} onChange={e => setCashAmount(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} /></div>
-                <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>🏦 Account</label><input type="number" step="0.01" value={accountAmount} onChange={e => setAccountAmount(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} /></div>
-                <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>💳 Card</label><input type="number" step="0.01" value={cardAmount} onChange={e => setCardAmount(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} /></div>
-                <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>📱 App</label><input type="number" step="0.01" value={appAmount} onChange={e => setAppAmount(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} /></div>
+                <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>💵 Cash</label><input type="number" step="0.01" value={cashAmount} onChange={e => setCashAmount(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '16px', boxSizing: 'border-box' }} /></div>
+                <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>🏦 Account</label><input type="number" step="0.01" value={accountAmount} onChange={e => setAccountAmount(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '16px', boxSizing: 'border-box' }} /></div>
+                <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>💳 Card</label><input type="number" step="0.01" value={cardAmount} onChange={e => setCardAmount(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '16px', boxSizing: 'border-box' }} /></div>
+                <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>📱 App</label><input type="number" step="0.01" value={appAmount} onChange={e => setAppAmount(e.target.value)} placeholder="0.00" style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '16px', boxSizing: 'border-box' }} /></div>
+              </div>
+              <div style={{ backgroundColor: '#fef3c7', padding: '14px', borderRadius: '8px', marginBottom: '16px', textAlign: 'center' }}>
+                <p style={{ margin: '0 0 2px 0', fontSize: '12px', color: '#92400e' }}>Today's Total</p>
+                <p style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#92400e' }}>£{((parseFloat(cashAmount) || 0) + (parseFloat(accountAmount) || 0) + (parseFloat(cardAmount) || 0) + (parseFloat(appAmount) || 0)).toFixed(2)}</p>
               </div>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Notes (optional)</label>
-                <textarea value={incomeNotes} onChange={e => setIncomeNotes(e.target.value)} rows={2} placeholder="Pickup address, Name or Job ID No. This is advisable for your records" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical' }} />
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>🏢 Which company? (optional)</label>
+                <input type="text" value={incomeCompany} onChange={e => setIncomeCompany(e.target.value)} placeholder="e.g. Uber, Bolt, local firm..." style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '15px', boxSizing: 'border-box' }} />
               </div>
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>🏢 Company (optional)</label>
-                <input type="text" value={incomeCompany} onChange={e => setIncomeCompany(e.target.value)} placeholder="Enter here what company supplied you with the job" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
-              </div>
-              <div style={{ backgroundColor: '#fef3c7', padding: '12px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: '14px' }}>Total Fares: <strong>£{((parseFloat(cashAmount) || 0) + (parseFloat(accountAmount) || 0) + (parseFloat(cardAmount) || 0) + (parseFloat(appAmount) || 0)).toFixed(2)}</strong></p>
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>📝 Notes (optional)</label>
+                <textarea value={incomeNotes} onChange={e => setIncomeNotes(e.target.value)} rows={2} placeholder="e.g. Job ref, pickup area or customer name" style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '15px', boxSizing: 'border-box', resize: 'vertical' }} />
+                <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>A quick note here takes 5 seconds and can save you hassle later.</p>
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" onClick={() => setShowIncomeModal(false)} style={{ flex: 1, padding: '12px', backgroundColor: '#f3f4f6', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Cancel</button>
-                <button type="submit" disabled={submittingIncome} style={{ flex: 1, padding: '12px', backgroundColor: submittingIncome ? '#9ca3af' : '#eab308', color: 'black', border: 'none', borderRadius: '8px', cursor: submittingIncome ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '14px' }}>{submittingIncome ? 'Saving...' : (editingEarning ? 'Update' : 'Add Income')}</button>
+                <button type="button" onClick={() => setShowIncomeModal(false)} style={{ flex: 1, padding: '14px', backgroundColor: '#f3f4f6', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '15px' }}>Cancel</button>
+                <button type="submit" disabled={submittingIncome} style={{ flex: 1, padding: '14px', backgroundColor: submittingIncome ? '#9ca3af' : '#eab308', color: 'black', border: 'none', borderRadius: '8px', cursor: submittingIncome ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '15px' }}>{submittingIncome ? 'Saving...' : (editingEarning ? 'Update Earnings' : 'Save Earnings')}</button>
               </div>
             </form>
           </div>
@@ -774,40 +777,45 @@ export default function FinancePage() {
       {showExpenseModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflow: 'auto' }}>
-            <h3 style={{ margin: '0 0 20px 0', fontSize: '20px' }}>{editingExpense ? 'Edit Expense' : 'Add Expense'}</h3>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '20px' }}>{editingExpense ? '✏️ Edit Expense' : '📤 Log an Expense'}</h3>
+            <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#666' }}>Every expense you log reduces your tax bill — it all adds up!</p>
             <form onSubmit={handleSubmitExpense}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <BritishDatePicker label="Date" value={expenseDate} onChange={setExpenseDate} />
-                <div><label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Amount (£)</label><input type="number" step="0.01" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} required placeholder="0.00" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} /></div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>💷 How much?</label>
+                  <input type="number" step="0.01" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} required placeholder="0.00" style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '16px', boxSizing: 'border-box' }} />
+                </div>
               </div>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Category</label>
-                <select value={expenseCategory} onChange={e => setExpenseCategory(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>What was it for?</label>
+                <select value={expenseCategory} onChange={e => setExpenseCategory(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '15px', boxSizing: 'border-box' }}>
                   {EXPENSE_CATEGORIES.map(cat => <option key={cat.id} value={cat.id}>{cat.label}</option>)}
                 </select>
               </div>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Description / Vendor (optional)</label>
-                <input type="text" value={expenseDescription} onChange={e => setExpenseDescription(e.target.value)} placeholder="e.g. Shell petrol station" style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Where did you spend it? (optional)</label>
+                <input type="text" value={expenseDescription} onChange={e => setExpenseDescription(e.target.value)} placeholder="e.g. Shell, Halfords, local garage" style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '15px', boxSizing: 'border-box' }} />
               </div>
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Receipt (optional)</label>
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>📎 Got a receipt? Snap it now</label>
+                <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#9ca3af' }}>Attaching your receipt takes seconds and keeps your records clean at tax time.</p>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                  <label style={{ flex: 1, padding: '12px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <label style={{ flex: 1, padding: '14px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                     📷 Take Photo
                     <input type="file" accept="image/*" capture="environment" onChange={e => setExpenseReceipt(e.target.files?.[0] || null)} style={{ display: 'none' }} />
                   </label>
-                  <label style={{ flex: 1, padding: '12px', backgroundColor: '#6b7280', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <label style={{ flex: 1, padding: '14px', backgroundColor: '#6b7280', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                     📁 Upload File
                     <input type="file" accept="image/*,.pdf" onChange={e => setExpenseReceipt(e.target.files?.[0] || null)} style={{ display: 'none' }} />
                   </label>
                 </div>
-                {expenseReceipt && <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#16a34a', fontWeight: '500' }}>✓ {expenseReceipt.name}</p>}
-                {editingExpense?.receipt_url && !expenseReceipt && <p style={{ margin: '0', fontSize: '12px', color: '#666' }}>📎 Existing receipt attached</p>}
+                {expenseReceipt && <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#16a34a', fontWeight: '500' }}>✓ Receipt added: {expenseReceipt.name}</p>}
+                {editingExpense?.receipt_url && !expenseReceipt && <p style={{ margin: '0', fontSize: '12px', color: '#666' }}>📎 Receipt already attached</p>}
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" onClick={() => setShowExpenseModal(false)} style={{ flex: 1, padding: '12px', backgroundColor: '#f3f4f6', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Cancel</button>
-                <button type="submit" disabled={submittingExpense} style={{ flex: 1, padding: '12px', backgroundColor: submittingExpense ? '#9ca3af' : '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: submittingExpense ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '14px' }}>{submittingExpense ? 'Saving...' : (editingExpense ? 'Update' : 'Add Expense')}</button>
+                <button type="button" onClick={() => setShowExpenseModal(false)} style={{ flex: 1, padding: '14px', backgroundColor: '#f3f4f6', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '15px' }}>Cancel</button>
+                <button type="submit" disabled={submittingExpense} style={{ flex: 1, padding: '14px', backgroundColor: submittingExpense ? '#9ca3af' : '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: submittingExpense ? 'not-allowed' : 'pointer', fontWeight: '600', fontSize: '15px' }}>{submittingExpense ? 'Saving...' : (editingExpense ? 'Update Expense' : 'Save Expense')}</button>
               </div>
             </form>
           </div>
@@ -881,7 +889,7 @@ export default function FinancePage() {
                 </ul>
               </div>
             </div>
-            <button onClick={() => setShowClaimsModal(false)} style={{ width: '100%', marginTop: '20px', padding: '14px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Got it!</button>
+            <button onClick={() => setShowClaimsModal(false)} style={{ width: '100%', marginTop: '20px', padding: '14px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Thanks, got it!</button>
           </div>
         </div>
       )}
@@ -921,7 +929,7 @@ export default function FinancePage() {
                 <p style={{ margin: 0, fontSize: '13px', color: '#166534', fontWeight: '600' }}>💼 If you don't already have an accountant, let us know and we can recommend one.</p>
               </div>
             </div>
-            <button onClick={() => setShowHighEarnerModal(false)} style={{ width: '100%', marginTop: '20px', padding: '14px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Got it!</button>
+            <button onClick={() => setShowHighEarnerModal(false)} style={{ width: '100%', marginTop: '20px', padding: '14px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Thanks, got it!</button>
           </div>
         </div>
       )}
