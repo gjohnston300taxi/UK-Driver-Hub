@@ -9,11 +9,18 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+const SESSION_OPTIONS = [
+  { label: '1 day', days: 1 },
+  { label: '7 days', days: 7 },
+  { label: '30 days', days: 30 },
+]
+
 export default function SignInPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [selectedDays, setSelectedDays] = useState(1)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +39,10 @@ export default function SignInPage() {
     }
 
     if (data.user) {
+      const expiryDate = new Date()
+      expiryDate.setDate(expiryDate.getDate() + selectedDays)
+      localStorage.setItem('session_expiry', expiryDate.toISOString())
+      localStorage.setItem('session_days', String(selectedDays))
       window.location.href = '/feed'
     }
   }
@@ -111,6 +122,35 @@ export default function SignInPage() {
               }}
               placeholder="Enter your password"
             />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '10px', fontWeight: '500', fontSize: '14px' }}>
+              Keep me logged in for:
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {SESSION_OPTIONS.map(({ label, days }) => (
+                <button
+                  key={days}
+                  type="button"
+                  onClick={() => setSelectedDays(days)}
+                  style={{
+                    flex: 1,
+                    padding: '10px 6px',
+                    border: selectedDays === days ? '2px solid #eab308' : '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    backgroundColor: selectedDays === days ? '#fef9c3' : 'white',
+                    color: selectedDays === days ? '#92400e' : '#666',
+                    fontWeight: selectedDays === days ? '600' : '400',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {error && (
