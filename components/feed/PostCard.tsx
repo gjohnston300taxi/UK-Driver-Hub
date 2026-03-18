@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import LikeButton from './LikeButton'
+import ReactionButton from './ReactionButton'
 import CommentList from './CommentList'
 import { MessageSquare } from 'lucide-react'
 
@@ -112,7 +112,7 @@ export default function PostCard({ post, userId, onUpdate }: PostCardProps) {
 
       {/* Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <LikeButton postId={post.id} userId={userId} onUpdate={onUpdate} />
+        <ReactionButton postId={post.id} userId={userId} onUpdate={onUpdate} />
         
         <button
           onClick={() => setShowComments(!showComments)}
