@@ -170,7 +170,6 @@ function TaxEstimator() {
 
   return (
     <div>
-      {/* Inputs */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>Annual driving income</label>
@@ -189,14 +188,12 @@ function TaxEstimator() {
       </div>
       <p style={{ margin: '0 0 20px 0', fontSize: '12px', color: '#9ca3af' }}>Expenses include fuel, insurance, phone, maintenance, etc.</p>
 
-      {/* Tabs */}
       <div style={{ backgroundColor: '#f3f4f6', borderRadius: '10px', padding: '4px', display: 'inline-flex', gap: '4px', marginBottom: '16px' }}>
         <button style={tabBtn('annual')} onClick={() => setTab('annual')}>Annual</button>
         <button style={tabBtn('monthly')} onClick={() => setTab('monthly')}>Monthly</button>
         <button style={tabBtn('weekly')} onClick={() => setTab('weekly')}>Weekly</button>
       </div>
 
-      {/* Annual */}
       {tab === 'annual' && (
         <div>
           <div style={{ marginBottom: '16px' }}>
@@ -232,7 +229,6 @@ function TaxEstimator() {
         </div>
       )}
 
-      {/* Monthly */}
       {tab === 'monthly' && (
         <div>
           <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#6b7280' }}>Based on your annual figures divided across 12 months.</p>
@@ -256,7 +252,6 @@ function TaxEstimator() {
         </div>
       )}
 
-      {/* Weekly */}
       {tab === 'weekly' && (
         <div>
           <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#6b7280' }}>Based on your annual figures divided across 52 weeks.</p>
@@ -319,7 +314,7 @@ export default function FinancePage() {
   const [exportEndDate, setExportEndDate] = useState('')
   const [showClaimsModal, setShowClaimsModal] = useState(false)
   const [showHighEarnerModal, setShowHighEarnerModal] = useState(false)
-  const [showTaxEstimatorModal, setShowTaxEstimatorModal] = useState(false) // NEW
+  const [showTaxEstimatorModal, setShowTaxEstimatorModal] = useState(false)
   const [hoursPerDay, setHoursPerDay] = useState('')
   const [daysPerWeek, setDaysPerWeek] = useState('')
 
@@ -483,6 +478,7 @@ export default function FinancePage() {
     setShowExportModal(true)
   }
 
+  // ── UPDATED exportCSV with 30-day receipt links ──────────────────────────
   const exportCSV = async () => {
     const { data: earningsData } = await supabase.from('earnings_daily').select('*').eq('user_id', user.id).gte('date', exportStartDate).lte('date', exportEndDate).order('date', { ascending: true })
     const { data: expensesData } = await supabase.from('expense_entries').select('*').eq('user_id', user.id).gte('date', exportStartDate).lte('date', exportEndDate).order('date', { ascending: true })
@@ -490,8 +486,19 @@ export default function FinancePage() {
     const exportEarnings = earningsData || []
     const exportExpenses = expensesData || []
 
+    // Generate signed URLs for all receipts (30 days = 2592000 seconds)
+    const expensesWithLinks = await Promise.all(
+      exportExpenses.map(async (exp) => {
+        if (exp.receipt_url) {
+          const { data } = await supabase.storage.from('receipts').createSignedUrl(exp.receipt_url, 2592000)
+          return { ...exp, signedReceiptUrl: data?.signedUrl || '' }
+        }
+        return { ...exp, signedReceiptUrl: '' }
+      })
+    )
+
     const expTotalEarnings = exportEarnings.reduce((sum, e) => sum + Number(e.total_fares), 0)
-    const expTotalExpenses = exportExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
+    const expTotalExpenses = expensesWithLinks.reduce((sum, e) => sum + Number(e.amount), 0)
     const expNetIncome = expTotalEarnings - expTotalExpenses
     const expTotalJobs = exportEarnings.reduce((sum, e) => sum + e.total_jobs, 0)
 
@@ -500,20 +507,20 @@ export default function FinancePage() {
       return `${day}/${month}/${year}`
     }
 
-    let csv = `Taxi Finance Report\nPeriod: ${formatDateForCSV(exportStartDate)} to ${formatDateForCSV(exportEndDate)}\nGenerated: ${new Date().toLocaleDateString('en-GB')}\n\n`
-    csv += 'Date,Type,Category,Description,Cash,Account,Card,App,Total Fares,Expense Amount,Jobs,Notes,Company\n'
+    let csv = `Taxi Finance Report\nPeriod: ${formatDateForCSV(exportStartDate)} to ${formatDateForCSV(exportEndDate)}\nGenerated: ${new Date().toLocaleDateString('en-GB')}\nReceipt links are valid for 30 days from the date this file was downloaded.\n\n`
+    csv += 'Date,Type,Category,Description,Cash,Account,Card,App,Total Fares,Expense Amount,Jobs,Notes,Company,Receipt Link\n'
 
     const allDates = new Set<string>()
     exportEarnings.forEach(e => allDates.add(e.date))
-    exportExpenses.forEach(e => allDates.add(e.date))
+    expensesWithLinks.forEach(e => allDates.add(e.date))
     const sortedDates = Array.from(allDates).sort()
 
     sortedDates.forEach(date => {
       const dayEarning = exportEarnings.find(e => e.date === date)
-      const dayExpenses = exportExpenses.filter(e => e.date === date)
+      const dayExpenses = expensesWithLinks.filter(e => e.date === date)
       const formattedDate = formatDateForCSV(date)
-      if (dayEarning) csv += `${formattedDate},Income,,,"${dayEarning.cash_amount}","${dayEarning.account_amount}","${dayEarning.card_amount}","${dayEarning.app_amount}","${dayEarning.total_fares}",,"${dayEarning.total_jobs}","${dayEarning.notes || ''}","${dayEarning.company || ''}"\n`
-      dayExpenses.forEach(exp => csv += `${formattedDate},Expense,"${getCategoryLabel(exp.category)}","${exp.description || ''}",,,,,,"${exp.amount}",,,\n`)
+      if (dayEarning) csv += `${formattedDate},Income,,,"${dayEarning.cash_amount}","${dayEarning.account_amount}","${dayEarning.card_amount}","${dayEarning.app_amount}","${dayEarning.total_fares}",,"${dayEarning.total_jobs}","${dayEarning.notes || ''}","${dayEarning.company || ''}",\n`
+      dayExpenses.forEach(exp => csv += `${formattedDate},Expense,"${getCategoryLabel(exp.category)}","${exp.description || ''}",,,,,,"${exp.amount}",,,,${exp.signedReceiptUrl ? `"${exp.signedReceiptUrl}"` : ''}\n`)
     })
 
     csv += `\n--- SUMMARY ---\n`
@@ -524,7 +531,7 @@ export default function FinancePage() {
 
     csv += `\n--- EXPENSES BY CATEGORY ---\n`
     EXPENSE_CATEGORIES.forEach(cat => {
-      const catTotal = exportExpenses.filter(e => e.category === cat.id).reduce((sum, e) => sum + Number(e.amount), 0)
+      const catTotal = expensesWithLinks.filter(e => e.category === cat.id).reduce((sum, e) => sum + Number(e.amount), 0)
       if (catTotal > 0) csv += `${cat.label},£${catTotal.toFixed(2)}\n`
     })
 
@@ -533,6 +540,7 @@ export default function FinancePage() {
     a.download = `taxi-finance-${exportStartDate}-to-${exportEndDate}.csv`; a.click()
     setShowExportModal(false)
   }
+  // ── END UPDATED exportCSV ────────────────────────────────────────────────
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}><p>Loading...</p></div>
 
@@ -550,7 +558,6 @@ export default function FinancePage() {
             <button onClick={openExportModal} style={{ padding: '10px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>📥 Download for Accountant</button>
             <button onClick={() => setShowClaimsModal(true)} style={{ padding: '10px 16px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>❓ What to Claim</button>
             <button onClick={() => setShowHighEarnerModal(true)} style={{ padding: '10px 16px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>💷 Over £50k</button>
-            {/* NEW TAX ESTIMATOR BUTTON */}
             <button onClick={() => setShowTaxEstimatorModal(true)} style={{ padding: '10px 16px', backgroundColor: '#f97316', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>🧮 Tax Estimator</button>
           </div>
         </div>
@@ -592,32 +599,17 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {/* ── HOURLY RATE SECTION ───────────────────────────────────────── */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           <h3 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>⏱️ Hourly Earning Rate</h3>
           <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#666' }}>Enter your hours to see what you earn per hour after expenses.</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>Hours per day</label>
-              <input
-                type="number"
-                value={hoursPerDay}
-                onChange={e => setHoursPerDay(e.target.value)}
-                placeholder="e.g. 8"
-                min="0" max="24" step="0.5"
-                style={{ width: '100%', padding: '14px 12px', border: '2px solid #e5e7eb', borderRadius: '10px', fontSize: '18px', fontWeight: '600', boxSizing: 'border-box', textAlign: 'center' }}
-              />
+              <input type="number" value={hoursPerDay} onChange={e => setHoursPerDay(e.target.value)} placeholder="e.g. 8" min="0" max="24" step="0.5" style={{ width: '100%', padding: '14px 12px', border: '2px solid #e5e7eb', borderRadius: '10px', fontSize: '18px', fontWeight: '600', boxSizing: 'border-box', textAlign: 'center' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>Days per week</label>
-              <input
-                type="number"
-                value={daysPerWeek}
-                onChange={e => setDaysPerWeek(e.target.value)}
-                placeholder="e.g. 5"
-                min="0" max="7" step="0.5"
-                style={{ width: '100%', padding: '14px 12px', border: '2px solid #e5e7eb', borderRadius: '10px', fontSize: '18px', fontWeight: '600', boxSizing: 'border-box', textAlign: 'center' }}
-              />
+              <input type="number" value={daysPerWeek} onChange={e => setDaysPerWeek(e.target.value)} placeholder="e.g. 5" min="0" max="7" step="0.5" style={{ width: '100%', padding: '14px 12px', border: '2px solid #e5e7eb', borderRadius: '10px', fontSize: '18px', fontWeight: '600', boxSizing: 'border-box', textAlign: 'center' }} />
             </div>
           </div>
           {(() => {
@@ -657,7 +649,6 @@ export default function FinancePage() {
           })()}
           <p style={{ margin: '12px 0 0 0', fontSize: '11px', color: '#9ca3af' }}>Based on your {timeframe === 'week' ? 'last 7 days' : timeframe === 'month' ? 'this month' : 'all time'} earnings data. Hourly rate is estimated from your current period.</p>
         </div>
-        {/* ── END HOURLY RATE SECTION ───────────────────────────────────── */}
 
         <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Daily Breakdown</h3>
         {dailyData.length === 0 ? (
@@ -719,7 +710,6 @@ export default function FinancePage() {
         )}
       </main>
 
-      {/* ── TAX ESTIMATOR MODAL (NEW) ─────────────────────────────────────── */}
       {showTaxEstimatorModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflow: 'auto' }}>
@@ -735,7 +725,6 @@ export default function FinancePage() {
           </div>
         </div>
       )}
-      {/* ── END TAX ESTIMATOR MODAL ──────────────────────────────────────── */}
 
       {showIncomeModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
@@ -834,7 +823,8 @@ export default function FinancePage() {
               <BritishDatePicker label="End Date" value={exportEndDate} onChange={setExportEndDate} />
             </div>
             <div style={{ backgroundColor: '#f0fdf4', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>
-              <p style={{ margin: 0, fontSize: '13px', color: '#166534' }}>✓ Includes earnings, expenses, and category breakdown</p>
+              <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#166534' }}>✓ Includes earnings, expenses, and category breakdown</p>
+              <p style={{ margin: 0, fontSize: '13px', color: '#166534' }}>✓ Receipt links included — valid for 30 days</p>
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button onClick={() => setShowExportModal(false)} style={{ flex: 1, padding: '12px', backgroundColor: '#f3f4f6', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Cancel</button>
@@ -926,7 +916,7 @@ export default function FinancePage() {
               <div style={{ backgroundColor: '#dcfce7', padding: '16px', borderRadius: '12px', borderLeft: '4px solid #16a34a' }}>
                 <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', color: '#166534' }}>5️⃣ Professional Advice is Strongly Recommended</h4>
                 <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#166534' }}>If your profit is over £50,000, you should speak to a <strong>certified accountant</strong> before making any changes.</p>
-                <p style={{ margin: 0, fontSize: '13px', color: '#166534', fontWeight: '600' }}>💼 If you don't already have an accountant, let us know and we can recommend one.</p>
+                <p style={{ margin: 0, fontSize: '13px', color: '#166634', fontWeight: '600' }}>💼 If you don't already have an accountant, let us know and we can recommend one.</p>
               </div>
             </div>
             <button onClick={() => setShowHighEarnerModal(false)} style={{ width: '100%', marginTop: '20px', padding: '14px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Thanks, got it!</button>
