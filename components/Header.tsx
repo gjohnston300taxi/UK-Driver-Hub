@@ -44,7 +44,7 @@ export default function Header() {
     { href: '/marketplace', label: 'Marketplace', emoji: '🏪' },
     { href: '/finance', label: 'Finance', emoji: '💰' },
     { href: '/resources', label: 'Resources', emoji: '📚' },
-    { href: '/assistant', label: 'Assistant', emoji: '🤖' },
+    { href: '/assistant', label: 'Legal & Industry Assistant', emoji: '🤖' },
     { href: '/profile', label: 'Profile', emoji: '👤' },
   ]
 

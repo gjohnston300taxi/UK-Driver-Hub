@@ -134,7 +134,7 @@ function BritishDatePicker({ value, onChange, label }: { value: string, onChange
   )
 }
 
-// ── Tax Estimator Component ──────────────────────────────────────────────────
+// Tax Estimator Component
 function TaxEstimator() {
   const [income, setIncome] = useState(30000)
   const [expenses, setExpenses] = useState(5000)
@@ -281,7 +281,7 @@ function TaxEstimator() {
     </div>
   )
 }
-// ── End Tax Estimator ────────────────────────────────────────────────────────
+// End Tax Estimator
 
 export default function FinancePage() {
   const [user, setUser] = useState<any>(null)
@@ -317,6 +317,7 @@ export default function FinancePage() {
   const [showTaxEstimatorModal, setShowTaxEstimatorModal] = useState(false)
   const [hoursPerDay, setHoursPerDay] = useState('')
   const [daysPerWeek, setDaysPerWeek] = useState('')
+  const [showSignupPrompt, setShowSignupPrompt] = useState(false)
 
   useEffect(() => { loadUser() }, [])
   useEffect(() => { if (user) loadData() }, [user, timeframe])
@@ -324,10 +325,11 @@ export default function FinancePage() {
 
   const loadUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { window.location.href = '/signin'; return }
-    setUser(user)
-    const { data } = await supabase.from('profiles').select('name, is_admin').eq('id', user.id).single()
-    setProfile(data)
+    if (user) {
+      setUser(user)
+      const { data } = await supabase.from('profiles').select('name, is_admin').eq('id', user.id).single()
+      setProfile(data)
+    }
     setLoading(false)
   }
 
@@ -394,7 +396,9 @@ export default function FinancePage() {
   }
 
   const handleSubmitIncome = async (e: React.FormEvent) => {
-    e.preventDefault(); setSubmittingIncome(true)
+    e.preventDefault()
+    if (!user) { setShowIncomeModal(false); setShowSignupPrompt(true); return }
+    setSubmittingIncome(true)
     const cash = parseFloat(cashAmount) || 0, account = parseFloat(accountAmount) || 0
     const card = parseFloat(cardAmount) || 0, app = parseFloat(appAmount) || 0
     const totalFares = cash + account + card + app
@@ -438,7 +442,9 @@ export default function FinancePage() {
   }
 
   const handleSubmitExpense = async (e: React.FormEvent) => {
-    e.preventDefault(); setSubmittingExpense(true)
+    e.preventDefault()
+    if (!user) { setShowExpenseModal(false); setShowSignupPrompt(true); return }
+    setSubmittingExpense(true)
     let receiptUrl = editingExpense?.receipt_url || null
     if (expenseReceipt) {
       const filePath = `${user.id}/${Date.now()}-${expenseReceipt.name}`
@@ -478,15 +484,14 @@ export default function FinancePage() {
     setShowExportModal(true)
   }
 
-  // ── UPDATED exportCSV with 30-day receipt links ──────────────────────────
   const exportCSV = async () => {
+    if (!user) { setShowExportModal(false); setShowSignupPrompt(true); return }
     const { data: earningsData } = await supabase.from('earnings_daily').select('*').eq('user_id', user.id).gte('date', exportStartDate).lte('date', exportEndDate).order('date', { ascending: true })
     const { data: expensesData } = await supabase.from('expense_entries').select('*').eq('user_id', user.id).gte('date', exportStartDate).lte('date', exportEndDate).order('date', { ascending: true })
 
     const exportEarnings = earningsData || []
     const exportExpenses = expensesData || []
 
-    // Generate signed URLs for all receipts (30 days = 2592000 seconds)
     const expensesWithLinks = await Promise.all(
       exportExpenses.map(async (exp) => {
         if (exp.receipt_url) {
@@ -540,7 +545,6 @@ export default function FinancePage() {
     a.download = `taxi-finance-${exportStartDate}-to-${exportEndDate}.csv`; a.click()
     setShowExportModal(false)
   }
-  // ── END UPDATED exportCSV ────────────────────────────────────────────────
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}><p>Loading...</p></div>
 
@@ -550,7 +554,7 @@ export default function FinancePage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 8px 0' }}>💰 Finance Tracker</h2>
-            <p style={{ color: '#666', margin: 0 }}>Know exactly what you're earning — and keep HMRC happy</p>
+            <p style={{ color: '#666', margin: 0 }}>{user ? "Know exactly what you're earning — and keep HMRC happy" : 'See how it works below — sign up free to save your own entries'}</p>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button onClick={() => openIncomeModal()} style={{ padding: '10px 16px', backgroundColor: '#eab308', color: 'black', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>+ Add Income</button>
@@ -563,151 +567,151 @@ export default function FinancePage() {
         </div>
 
         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '6px', marginBottom: '24px', display: 'inline-flex', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          {(['week', 'month', 'all'] as const).map(tf => (
-            <button key={tf} onClick={() => setTimeframe(tf)} style={{ padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', fontSize: '14px', backgroundColor: timeframe === tf ? '#eab308' : 'transparent', color: timeframe === tf ? 'black' : '#666' }}>
-              {tf === 'week' ? 'Last 7 Days' : tf === 'month' ? 'This Month' : 'All Time'}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666' }}>Total Earnings</p>
-            <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#16a34a' }}>{formatCurrency(totalEarnings)}</p>
-          </div>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666' }}>Total Expenses</p>
-            <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#dc2626' }}>{formatCurrency(totalExpenses)}</p>
-          </div>
-          <div style={{ backgroundColor: netIncome >= 0 ? '#dcfce7' : '#fee2e2', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666' }}>Net Income</p>
-            <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: netIncome >= 0 ? '#16a34a' : '#dc2626' }}>{formatCurrency(netIncome)}</p>
-          </div>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666' }}>Cash + Account</p>
-            <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>{formatCurrency(cashAccountTotal)}</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>{cashAccountPercent}% of earnings</p>
-          </div>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666' }}>Card + App</p>
-            <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>{formatCurrency(cardAppTotal)}</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>{cardAppPercent}% of earnings</p>
-          </div>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666' }}>Total Jobs</p>
-            <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold' }}>{totalJobs}</p>
-          </div>
-        </div>
-
-        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>⏱️ Hourly Earning Rate</h3>
-          <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#666' }}>Enter your hours to see what you earn per hour after expenses.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>Hours per day</label>
-              <input type="number" value={hoursPerDay} onChange={e => setHoursPerDay(e.target.value)} placeholder="e.g. 8" min="0" max="24" step="0.5" style={{ width: '100%', padding: '14px 12px', border: '2px solid #e5e7eb', borderRadius: '10px', fontSize: '18px', fontWeight: '600', boxSizing: 'border-box', textAlign: 'center' }} />
+              {(['week', 'month', 'all'] as const).map(tf => (
+                <button key={tf} onClick={() => setTimeframe(tf)} style={{ padding: '10px 20px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', fontSize: '14px', backgroundColor: timeframe === tf ? '#eab308' : 'transparent', color: timeframe === tf ? 'black' : '#666' }}>
+                  {tf === 'week' ? 'Last 7 Days' : tf === 'month' ? 'This Month' : 'All Time'}
+                </button>
+              ))}
             </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>Days per week</label>
-              <input type="number" value={daysPerWeek} onChange={e => setDaysPerWeek(e.target.value)} placeholder="e.g. 5" min="0" max="7" step="0.5" style={{ width: '100%', padding: '14px 12px', border: '2px solid #e5e7eb', borderRadius: '10px', fontSize: '18px', fontWeight: '600', boxSizing: 'border-box', textAlign: 'center' }} />
-            </div>
-          </div>
-          {(() => {
-            const hpd = parseFloat(hoursPerDay) || 0
-            const dpw = parseFloat(daysPerWeek) || 0
-            const totalWeeklyHours = hpd * dpw
-            const totalAnnualHours = totalWeeklyHours * 52
-            const hourlyGross = totalAnnualHours > 0 ? totalEarnings / totalAnnualHours * (timeframe === 'week' ? 52 : timeframe === 'month' ? 12 : 1) : 0
-            const hourlyNet = totalAnnualHours > 0 ? netIncome / totalAnnualHours * (timeframe === 'week' ? 52 : timeframe === 'month' ? 12 : 1) : 0
-            if (hpd === 0 || dpw === 0) return (
-              <div style={{ backgroundColor: '#f9fafb', borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: '14px', color: '#9ca3af' }}>Enter your hours above to see your hourly rate</p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666' }}>Total Earnings</p>
+                <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#16a34a' }}>{formatCurrency(totalEarnings)}</p>
               </div>
-            )
-            return (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-                <div style={{ backgroundColor: '#f0fdf4', borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#166534', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hourly (before expenses)</p>
-                  <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#16a34a' }}>{formatCurrency(hourlyGross)}</p>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#166534' }}>per hour</p>
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666' }}>Total Expenses</p>
+                <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#dc2626' }}>{formatCurrency(totalExpenses)}</p>
+              </div>
+              <div style={{ backgroundColor: netIncome >= 0 ? '#dcfce7' : '#fee2e2', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666' }}>Net Income</p>
+                <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: netIncome >= 0 ? '#16a34a' : '#dc2626' }}>{formatCurrency(netIncome)}</p>
+              </div>
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666' }}>Cash + Account</p>
+                <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>{formatCurrency(cashAccountTotal)}</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>{cashAccountPercent}% of earnings</p>
+              </div>
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666' }}>Card + App</p>
+                <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>{formatCurrency(cardAppTotal)}</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>{cardAppPercent}% of earnings</p>
+              </div>
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666' }}>Total Jobs</p>
+                <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold' }}>{totalJobs}</p>
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              <h3 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>⏱️ Hourly Earning Rate</h3>
+              <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#666' }}>Enter your hours to see what you earn per hour after expenses.</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>Hours per day</label>
+                  <input type="number" value={hoursPerDay} onChange={e => setHoursPerDay(e.target.value)} placeholder="e.g. 8" min="0" max="24" step="0.5" style={{ width: '100%', padding: '14px 12px', border: '2px solid #e5e7eb', borderRadius: '10px', fontSize: '18px', fontWeight: '600', boxSizing: 'border-box', textAlign: 'center' }} />
                 </div>
-                <div style={{ backgroundColor: '#eff6ff', borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#1d4ed8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hourly (after expenses)</p>
-                  <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#2563eb' }}>{formatCurrency(hourlyNet)}</p>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#1d4ed8' }}>per hour</p>
-                </div>
-                <div style={{ backgroundColor: '#fef3c7', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 2px 0', fontSize: '12px', color: '#92400e', fontWeight: '600' }}>Hours per week</p>
-                  <p style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#92400e' }}>{totalWeeklyHours.toFixed(1)}h</p>
-                </div>
-                <div style={{ backgroundColor: '#fef3c7', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 2px 0', fontSize: '12px', color: '#92400e', fontWeight: '600' }}>Hours per year</p>
-                  <p style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#92400e' }}>{totalAnnualHours.toLocaleString('en-GB')}h</p>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px', color: '#374151' }}>Days per week</label>
+                  <input type="number" value={daysPerWeek} onChange={e => setDaysPerWeek(e.target.value)} placeholder="e.g. 5" min="0" max="7" step="0.5" style={{ width: '100%', padding: '14px 12px', border: '2px solid #e5e7eb', borderRadius: '10px', fontSize: '18px', fontWeight: '600', boxSizing: 'border-box', textAlign: 'center' }} />
                 </div>
               </div>
-            )
-          })()}
-          <p style={{ margin: '12px 0 0 0', fontSize: '11px', color: '#9ca3af' }}>Based on your {timeframe === 'week' ? 'last 7 days' : timeframe === 'month' ? 'this month' : 'all time'} earnings data. Hourly rate is estimated from your current period.</p>
-        </div>
-
-        <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Daily Breakdown</h3>
-        {dailyData.length === 0 ? (
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '60px 20px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <p style={{ color: '#666', margin: 0 }}>Nothing here yet — add today's earnings and start tracking your money!</p>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gap: '16px' }}>
-            {dailyData.map(day => (
-              <div key={day.date} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>{formatDate(day.date)}</h4>
-                  <span style={{ padding: '6px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: '600', backgroundColor: day.dailyNet >= 0 ? '#dcfce7' : '#fee2e2', color: day.dailyNet >= 0 ? '#16a34a' : '#dc2626' }}>Net: {formatCurrency(day.dailyNet)}</span>
-                </div>
-                {day.earnings && (
-                  <div style={{ marginBottom: day.expenses.length > 0 ? '16px' : 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#16a34a' }}>💰 Earnings: {formatCurrency(day.earnings.total_fares)}</p>
-                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px' }}>
-                          <span>💵 Cash: {formatCurrency(Number(day.earnings.cash_amount))}</span>
-                          <span>🏦 Account: {formatCurrency(Number(day.earnings.account_amount))}</span>
-                          <span>💳 Card: {formatCurrency(Number(day.earnings.card_amount))}</span>
-                          <span>📱 App: {formatCurrency(Number(day.earnings.app_amount))}</span>
-                          <span>🚗 Jobs: {day.earnings.total_jobs}</span>
-                        </div>
-                        {day.earnings.company && <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#3b82f6', fontWeight: '500' }}>🏢 Company: {day.earnings.company}</p>}
-                        {day.earnings.notes && <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#666', fontStyle: 'italic' }}>"{day.earnings.notes}"</p>}
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => openIncomeModal(day.earnings!)} style={{ padding: '6px 12px', backgroundColor: '#f3f4f6', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>Edit</button>
-                        <button onClick={() => handleDeleteEarning(day.earnings!.id)} style={{ padding: '6px 12px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>Delete</button>
-                      </div>
+              {(() => {
+                const hpd = parseFloat(hoursPerDay) || 0
+                const dpw = parseFloat(daysPerWeek) || 0
+                const totalWeeklyHours = hpd * dpw
+                const totalAnnualHours = totalWeeklyHours * 52
+                const hourlyGross = totalAnnualHours > 0 ? totalEarnings / totalAnnualHours * (timeframe === 'week' ? 52 : timeframe === 'month' ? 12 : 1) : 0
+                const hourlyNet = totalAnnualHours > 0 ? netIncome / totalAnnualHours * (timeframe === 'week' ? 52 : timeframe === 'month' ? 12 : 1) : 0
+                if (hpd === 0 || dpw === 0) return (
+                  <div style={{ backgroundColor: '#f9fafb', borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#9ca3af' }}>Enter your hours above to see your hourly rate</p>
+                  </div>
+                )
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                    <div style={{ backgroundColor: '#f0fdf4', borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#166534', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hourly (before expenses)</p>
+                      <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#16a34a' }}>{formatCurrency(hourlyGross)}</p>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#166534' }}>per hour</p>
+                    </div>
+                    <div style={{ backgroundColor: '#eff6ff', borderRadius: '10px', padding: '16px', textAlign: 'center' }}>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#1d4ed8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hourly (after expenses)</p>
+                      <p style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#2563eb' }}>{formatCurrency(hourlyNet)}</p>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#1d4ed8' }}>per hour</p>
+                    </div>
+                    <div style={{ backgroundColor: '#fef3c7', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
+                      <p style={{ margin: '0 0 2px 0', fontSize: '12px', color: '#92400e', fontWeight: '600' }}>Hours per week</p>
+                      <p style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#92400e' }}>{totalWeeklyHours.toFixed(1)}h</p>
+                    </div>
+                    <div style={{ backgroundColor: '#fef3c7', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
+                      <p style={{ margin: '0 0 2px 0', fontSize: '12px', color: '#92400e', fontWeight: '600' }}>Hours per year</p>
+                      <p style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#92400e' }}>{totalAnnualHours.toLocaleString('en-GB')}h</p>
                     </div>
                   </div>
-                )}
-                {day.expenses.length > 0 && (
-                  <div>
-                    <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#dc2626' }}>📤 Expenses: {formatCurrency(day.expenses.reduce((s, e) => s + Number(e.amount), 0))}</p>
-                    {day.expenses.map(expense => (
-                      <div key={expense.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', backgroundColor: '#fef2f2', borderRadius: '8px', marginBottom: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '13px' }}>{getCategoryLabel(expense.category)}</span>
-                          {expense.description && <span style={{ fontSize: '13px', color: '#666' }}>- {expense.description}</span>}
-                          <span style={{ fontWeight: '600', fontSize: '14px' }}>{formatCurrency(Number(expense.amount))}</span>
-                          {expense.receipt_url && <button onClick={() => viewReceipt(expense.receipt_url!)} style={{ padding: '2px 8px', backgroundColor: '#e0e7ff', color: '#4f46e5', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>📎 Receipt</button>}
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => openExpenseModal(expense)} style={{ padding: '4px 8px', backgroundColor: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>Edit</button>
-                          <button onClick={() => handleDeleteExpense(expense.id)} style={{ padding: '4px 8px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>✕</button>
+                )
+              })()}
+              <p style={{ margin: '12px 0 0 0', fontSize: '11px', color: '#9ca3af' }}>Based on your {timeframe === 'week' ? 'last 7 days' : timeframe === 'month' ? 'this month' : 'all time'} earnings data. Hourly rate is estimated from your current period.</p>
+            </div>
+
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Daily Breakdown</h3>
+            {dailyData.length === 0 ? (
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '60px 20px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                <p style={{ color: '#666', margin: 0 }}>{user ? "Nothing here yet — add today's earnings and start tracking your money!" : "This is where your daily earnings and expenses appear. Sign up free to start logging your own."}</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: '16px' }}>
+                {dailyData.map(day => (
+                  <div key={day.date} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
+                      <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>{formatDate(day.date)}</h4>
+                      <span style={{ padding: '6px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: '600', backgroundColor: day.dailyNet >= 0 ? '#dcfce7' : '#fee2e2', color: day.dailyNet >= 0 ? '#16a34a' : '#dc2626' }}>Net: {formatCurrency(day.dailyNet)}</span>
+                    </div>
+                    {day.earnings && (
+                      <div style={{ marginBottom: day.expenses.length > 0 ? '16px' : 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#16a34a' }}>💰 Earnings: {formatCurrency(day.earnings.total_fares)}</p>
+                            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px' }}>
+                              <span>💵 Cash: {formatCurrency(Number(day.earnings.cash_amount))}</span>
+                              <span>🏦 Account: {formatCurrency(Number(day.earnings.account_amount))}</span>
+                              <span>💳 Card: {formatCurrency(Number(day.earnings.card_amount))}</span>
+                              <span>📱 App: {formatCurrency(Number(day.earnings.app_amount))}</span>
+                              <span>🚗 Jobs: {day.earnings.total_jobs}</span>
+                            </div>
+                            {day.earnings.company && <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#3b82f6', fontWeight: '500' }}>🏢 Company: {day.earnings.company}</p>}
+                            {day.earnings.notes && <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#666', fontStyle: 'italic' }}>"{day.earnings.notes}"</p>}
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => openIncomeModal(day.earnings!)} style={{ padding: '6px 12px', backgroundColor: '#f3f4f6', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>Edit</button>
+                            <button onClick={() => handleDeleteEarning(day.earnings!.id)} style={{ padding: '6px 12px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>Delete</button>
+                          </div>
                         </div>
                       </div>
-                    ))}
+                    )}
+                    {day.expenses.length > 0 && (
+                      <div>
+                        <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#dc2626' }}>📤 Expenses: {formatCurrency(day.expenses.reduce((s, e) => s + Number(e.amount), 0))}</p>
+                        {day.expenses.map(expense => (
+                          <div key={expense.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', backgroundColor: '#fef2f2', borderRadius: '8px', marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '13px' }}>{getCategoryLabel(expense.category)}</span>
+                              {expense.description && <span style={{ fontSize: '13px', color: '#666' }}>- {expense.description}</span>}
+                              <span style={{ fontWeight: '600', fontSize: '14px' }}>{formatCurrency(Number(expense.amount))}</span>
+                              {expense.receipt_url && <button onClick={() => viewReceipt(expense.receipt_url!)} style={{ padding: '2px 8px', backgroundColor: '#e0e7ff', color: '#4f46e5', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>📎 Receipt</button>}
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button onClick={() => openExpenseModal(expense)} style={{ padding: '4px 8px', backgroundColor: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>Edit</button>
+                              <button onClick={() => handleDeleteExpense(expense.id)} style={{ padding: '4px 8px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>✕</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            )}
       </main>
 
       {showTaxEstimatorModal && (
@@ -881,6 +885,7 @@ export default function FinancePage() {
             </div>
             <button onClick={() => setShowClaimsModal(false)} style={{ width: '100%', marginTop: '20px', padding: '14px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Thanks, got it!</button>
           </div>
+ 
         </div>
       )}
 
@@ -920,6 +925,19 @@ export default function FinancePage() {
               </div>
             </div>
             <button onClick={() => setShowHighEarnerModal(false)} style={{ width: '100%', marginTop: '20px', padding: '14px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Thanks, got it!</button>
+          </div>
+        </div>
+      )}
+
+      {showSignupPrompt && (
+        <div onClick={() => setShowSignupPrompt(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: '16px', padding: '28px 24px', width: '100%', maxWidth: '380px', textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ fontSize: '40px', marginBottom: '8px' }}>🚕</div>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 700 }}>Sign up free to save your entries</h3>
+            <p style={{ color: '#666', margin: '0 0 20px 0', fontSize: '15px', lineHeight: '1.5' }}>Create a free account to save your earnings and expenses, upload receipts, and export a report for your accountant.</p>
+            <a href="/signup" style={{ display: 'block', padding: '13px', backgroundColor: '#eab308', color: 'black', borderRadius: '8px', textDecoration: 'none', fontWeight: 700, fontSize: '15px', marginBottom: '10px' }}>Sign up free</a>
+            <a href="/signin" style={{ display: 'block', padding: '13px', backgroundColor: '#f3f4f6', color: '#333', borderRadius: '8px', textDecoration: 'none', fontWeight: 600, fontSize: '15px', marginBottom: '10px', border: '1px solid #d1d5db' }}>I already have an account</a>
+            <button onClick={() => setShowSignupPrompt(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '14px' }}>Maybe later</button>
           </div>
         </div>
       )}

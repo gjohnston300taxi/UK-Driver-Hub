@@ -31,11 +31,12 @@ export default function NewsPage() {
 
   const loadUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { window.location.href = '/signin'; return }
-    setUser(user)
-    const { data } = await supabase.from('profiles').select('name, region').eq('id', user.id).single()
-    if (!data?.name || !data?.region) { window.location.href = '/onboarding'; return }
-    setProfile(data)
+    if (user) {
+      setUser(user)
+      const { data } = await supabase.from('profiles').select('name, region').eq('id', user.id).single()
+      if (!data?.name || !data?.region) { window.location.href = '/onboarding'; return }
+      setProfile(data)
+    }
     setLoading(false)
     loadNews()
   }
@@ -46,7 +47,7 @@ export default function NewsPage() {
         .from('news')
         .select('*')
         .order('created_at', { ascending: false })
-      
+
       if (!error && data) {
         setNews(data)
       }
@@ -84,7 +85,7 @@ export default function NewsPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
       <main style={{ maxWidth: '680px', margin: '0 auto', padding: '16px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 16px 0' }}>📢 Industry News</h2>
+        <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 16px 0' }}>Industry News</h2>
 
         {loadingNews ? (
           <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '40px 20px', textAlign: 'center', color: '#666', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
@@ -97,8 +98,8 @@ export default function NewsPage() {
         ) : (
           <div style={{ display: 'grid', gap: '16px' }}>
             {news.map((item) => (
-              <a
-                key={item.id}
+              
+                <a key={item.id}
                 href={`/news/${item.id}`}
                 style={{
                   display: 'block',
@@ -122,14 +123,14 @@ export default function NewsPage() {
                 </h3>
                 {item.source && (
                   <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#888' }}>
-                    📰 {item.source}
+                    {item.source}
                   </p>
                 )}
                 <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#666', lineHeight: '1.5' }}>
                   {getPreview(item.summary)}
                 </p>
                 <span style={{ fontSize: '14px', color: '#eab308', fontWeight: '500' }}>
-                  Read more →
+                  Read more
                 </span>
               </a>
             ))}

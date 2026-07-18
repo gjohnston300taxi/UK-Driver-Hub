@@ -112,7 +112,7 @@ const Avatar = ({ name, avatarUrl, size = 36 }: { name: string; avatarUrl?: stri
 }
 
 // Emoji Reaction Button Component
-const ReactionPicker = ({ postId, userId, reactions, onReact }: { postId: string; userId: string; reactions: Reaction[]; onReact: (postId: string, emoji: string) => void }) => {
+const ReactionPicker = ({ postId, userId, reactions, onReact, isGuest, onGuestAction }: { postId: string; userId: string; reactions: Reaction[]; onReact: (postId: string, emoji: string) => void; isGuest: boolean; onGuestAction: () => void }) => {
   const [showPicker, setShowPicker] = useState(false)
   const pickerRef = useRef<HTMLDivElement>(null)
 
@@ -136,7 +136,7 @@ const ReactionPicker = ({ postId, userId, reactions, onReact }: { postId: string
   return (
     <div ref={pickerRef} style={{ position: 'relative', display: 'inline-block' }}>
       <button
-        onClick={() => setShowPicker(!showPicker)}
+        onClick={() => { if (isGuest) { onGuestAction(); return } setShowPicker(!showPicker) }}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: '6px',
           padding: '8px 12px',
@@ -161,7 +161,7 @@ const ReactionPicker = ({ postId, userId, reactions, onReact }: { postId: string
         </span>
       )}
 
-      {showPicker && (
+      {showPicker && !isGuest && (
         <div style={{
           position: 'absolute', bottom: '44px', left: '0',
           backgroundColor: 'white', borderRadius: '50px',
@@ -216,9 +216,10 @@ export default function FeedPage() {
   const [editPostLink, setEditPostLink] = useState('')
   const [shareMessage, setShareMessage] = useState<string | null>(null)
   const [userHasPosted, setUserHasPosted] = useState(true)
+  const [showSignupPrompt, setShowSignupPrompt] = useState(false)
 
   useEffect(() => { loadUser() }, [])
-  useEffect(() => { if (user) { loadPosts(); loadAllReactions(); checkIfUserHasPosted() } }, [user, regionFilter])
+  useEffect(() => { loadPosts(); loadAllReactions(); if (user) checkIfUserHasPosted() }, [user, regionFilter])
   useEffect(() => { if (shareMessage) { const t = setTimeout(() => setShareMessage(null), 2000); return () => clearTimeout(t) } }, [shareMessage])
 
   const checkIfUserHasPosted = async () => {
@@ -229,7 +230,13 @@ export default function FeedPage() {
 
   const loadUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { window.location.href = '/signin'; return }
+    if (!user) {
+      // Guest visitor: let them browse, no profile needed
+      setUser(null)
+      setProfile(null)
+      setLoading(false)
+      return
+    }
     setUser(user)
     const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single()
     if (!profileData || !profileData.name || !profileData.region) { window.location.href = '/onboarding'; return }
@@ -244,7 +251,7 @@ export default function FeedPage() {
     if (error) { console.error('Error loading posts:', error); return }
     const postsWithProfiles = await Promise.all(
       (data || []).map(async (post) => {
-        const { data: profileData } = await supabase.from('profiles').select('name, region, avatar_url').eq('id', post.author_id).single()
+        const { data: profileData } = await supabase.from('public_profiles').select('name, region, avatar_url').eq('id', post.author_id).single()
         return { ...post, profiles: profileData }
       })
     )
@@ -273,7 +280,7 @@ export default function FeedPage() {
     const { data } = await supabase.from('post_comments').select('*').eq('post_id', postId).order('created_at', { ascending: true })
     if (data) {
       const withProfiles = await Promise.all(data.map(async (c) => {
-        const { data: p } = await supabase.from('profiles').select('name, avatar_url').eq('id', c.user_id).single()
+        const { data: p } = await supabase.from('public_profiles').select('name, avatar_url').eq('id', c.user_id).single()
         return { ...c, profiles: p }
       }))
       setComments(prev => ({ ...prev, [postId]: withProfiles }))
@@ -407,6 +414,20 @@ export default function FeedPage() {
         </div>
       )}
 
+      {/* Sign-up nudge popup (shown when a guest tries to react or comment) */}
+      {showSignupPrompt && (
+        <div onClick={() => setShowSignupPrompt(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 400, padding: '16px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', maxWidth: '360px', width: '100%', textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ fontSize: '40px', marginBottom: '8px' }}>🚕</div>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 8px' }}>Join UK Driver Hub</h2>
+            <p style={{ color: '#666', fontSize: '15px', margin: '0 0 20px' }}>Create a free account to react, comment and post in the community.</p>
+            <a href="/signup" style={{ display: 'block', padding: '12px', backgroundColor: '#eab308', color: 'black', borderRadius: '8px', textDecoration: 'none', fontWeight: 700, fontSize: '15px', marginBottom: '10px' }}>Sign up free</a>
+            <a href="/signin" style={{ display: 'block', padding: '12px', backgroundColor: '#f3f4f6', color: '#333', borderRadius: '8px', textDecoration: 'none', fontWeight: 600, fontSize: '15px', marginBottom: '10px', border: '1px solid #d1d5db' }}>I already have an account</a>
+            <button onClick={() => setShowSignupPrompt(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '14px' }}>Maybe later</button>
+          </div>
+        </div>
+      )}
+
       <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '12px 16px', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: '680px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -415,7 +436,14 @@ export default function FeedPage() {
               {mobileMenuOpen ? '✕' : '☰'}
             </button>
           </div>
-          <a href="/profile" title={profile?.name}><Avatar name={profile?.name || ''} avatarUrl={profile?.avatar_url} size={36} /></a>
+          {user ? (
+            <a href="/profile" title={profile?.name}><Avatar name={profile?.name || ''} avatarUrl={profile?.avatar_url} size={36} /></a>
+          ) : (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <a href="/signin" style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', color: '#333', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Sign in</a>
+              <a href="/signup" style={{ padding: '8px 12px', backgroundColor: '#eab308', borderRadius: '6px', color: 'black', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>Sign up</a>
+            </div>
+          )}
         </div>
         {mobileMenuOpen && (
           <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 99 }}>
@@ -424,43 +452,64 @@ export default function FeedPage() {
               <a href="/news" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>📢 News</a>
               <a href="/marketplace" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>🏪 Marketplace</a>
               <a href="/finance" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>💰 Finance</a>
-              <a href="/profile" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>👤 Profile</a>
-              <button onClick={() => { setMobileMenuOpen(false); handleSignOut() }} style={{ padding: '16px', backgroundColor: 'transparent', border: 'none', color: '#dc2626', fontSize: '16px', textAlign: 'left', cursor: 'pointer' }}>🚪 Sign Out</button>
+              {user && <a href="/profile" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>👤 Profile</a>}
+              {user ? (
+                <button onClick={() => { setMobileMenuOpen(false); handleSignOut() }} style={{ padding: '16px', backgroundColor: 'transparent', border: 'none', color: '#dc2626', fontSize: '16px', textAlign: 'left', cursor: 'pointer' }}>🚪 Sign Out</button>
+              ) : (
+                <>
+                  <a href="/signin" style={{ padding: '16px', color: '#333', textDecoration: 'none', fontSize: '16px', borderBottom: '1px solid #f3f4f6' }} onClick={() => setMobileMenuOpen(false)}>🔑 Sign In</a>
+                  <a href="/signup" style={{ padding: '16px', color: '#b45309', textDecoration: 'none', fontSize: '16px', fontWeight: '600' }} onClick={() => setMobileMenuOpen(false)}>✍️ Sign Up Free</a>
+                </>
+              )}
             </nav>
           </div>
         )}
       </header>
 
       <main style={{ maxWidth: '680px', margin: '0 auto', padding: '16px' }}>
-        <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '4px', marginBottom: '16px', display: 'flex', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <button onClick={() => setRegionFilter('all')} style={{ flex: 1, padding: '10px 8px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', backgroundColor: regionFilter === 'all' ? '#eab308' : 'transparent', color: regionFilter === 'all' ? 'black' : '#666' }}>All UK</button>
-          <button onClick={() => setRegionFilter('my-region')} style={{ flex: 1, padding: '10px 8px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', backgroundColor: regionFilter === 'my-region' ? '#eab308' : 'transparent', color: regionFilter === 'my-region' ? 'black' : '#666' }}>{profile?.region || 'My Region'}</button>
-        </div>
+        {user && (
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '4px', marginBottom: '16px', display: 'flex', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <button onClick={() => setRegionFilter('all')} style={{ flex: 1, padding: '10px 8px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', backgroundColor: regionFilter === 'all' ? '#eab308' : 'transparent', color: regionFilter === 'all' ? 'black' : '#666' }}>All UK</button>
+            <button onClick={() => setRegionFilter('my-region')} style={{ flex: 1, padding: '10px 8px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', backgroundColor: regionFilter === 'my-region' ? '#eab308' : 'transparent', color: regionFilter === 'my-region' ? 'black' : '#666' }}>{profile?.region || 'My Region'}</button>
+          </div>
+        )}
 
-        <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '16px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder={userHasPosted ? "What's happening in your driving world?" : "Tell us a bit about yourself, what city you're working in and how many years have you been a cab driver"} maxLength={1000} style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', minHeight: '80px', resize: 'vertical', fontSize: '16px', boxSizing: 'border-box', fontFamily: 'inherit' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', marginBottom: '12px' }}>
-            <span style={{ fontSize: '14px', color: newPostContent.length > 900 ? '#ef4444' : '#999' }}>{newPostContent.length}/1000</span>
-            {uploadProgress && <span style={{ fontSize: '14px', color: '#eab308' }}>{uploadProgress}</span>}
-          </div>
-          {imagePreview && (
-            <div style={{ position: 'relative', marginBottom: '12px' }}>
-              <img src={imagePreview} alt="Preview" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', objectFit: 'contain', backgroundColor: '#f3f4f6' }} />
-              <button onClick={removeImage} style={{ position: 'absolute', top: '8px', right: '8px', width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+        {user ? (
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '16px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder={userHasPosted ? "What's happening in your driving world?" : "Tell us a bit about yourself, what city you're working in and how many years have you been a cab driver"} maxLength={1000} style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', minHeight: '80px', resize: 'vertical', fontSize: '16px', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', marginBottom: '12px' }}>
+              <span style={{ fontSize: '14px', color: newPostContent.length > 900 ? '#ef4444' : '#999' }}>{newPostContent.length}/1000</span>
+              {uploadProgress && <span style={{ fontSize: '14px', color: '#eab308' }}>{uploadProgress}</span>}
             </div>
-          )}
-          <input type="url" value={newPostLink} onChange={(e) => setNewPostLink(e.target.value)} placeholder="Add a link or YouTube URL (optional)" style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '14px', marginBottom: '12px', boxSizing: 'border-box' }} />
-          {newPostLink && isYouTubeUrl(newPostLink) && getYouTubeId(newPostLink) && (
-            <div style={{ marginBottom: '12px' }}>
-              <iframe width="100%" height="180" src={`https://www.youtube.com/embed/${getYouTubeId(newPostLink)}`} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ borderRadius: '8px' }} />
+            {imagePreview && (
+              <div style={{ position: 'relative', marginBottom: '12px' }}>
+                <img src={imagePreview} alt="Preview" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px', objectFit: 'contain', backgroundColor: '#f3f4f6' }} />
+                <button onClick={removeImage} style={{ position: 'absolute', top: '8px', right: '8px', width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+              </div>
+            )}
+            <input type="url" value={newPostLink} onChange={(e) => setNewPostLink(e.target.value)} placeholder="Add a link or YouTube URL (optional)" style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '14px', marginBottom: '12px', boxSizing: 'border-box' }} />
+            {newPostLink && isYouTubeUrl(newPostLink) && getYouTubeId(newPostLink) && (
+              <div style={{ marginBottom: '12px' }}>
+                <iframe width="100%" height="180" src={`https://www.youtube.com/embed/${getYouTubeId(newPostLink)}`} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{ borderRadius: '8px' }} />
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" capture="environment" style={{ display: 'none' }} />
+              <button onClick={() => fileInputRef.current?.click()} disabled={posting} style={{ padding: '10px 14px', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: posting ? 'not-allowed' : 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>📷 Photo</button>
+              <button onClick={handleCreatePost} disabled={posting || !newPostContent.trim()} style={{ padding: '10px 20px', backgroundColor: posting || !newPostContent.trim() ? '#d1d5db' : '#eab308', color: 'black', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: posting || !newPostContent.trim() ? 'not-allowed' : 'pointer', fontSize: '14px', marginLeft: 'auto' }}>{posting ? 'Posting...' : 'Post'}</button>
             </div>
-          )}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" capture="environment" style={{ display: 'none' }} />
-            <button onClick={() => fileInputRef.current?.click()} disabled={posting} style={{ padding: '10px 14px', backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '6px', cursor: posting ? 'not-allowed' : 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>📷 Photo</button>
-            <button onClick={handleCreatePost} disabled={posting || !newPostContent.trim()} style={{ padding: '10px 20px', backgroundColor: posting || !newPostContent.trim() ? '#d1d5db' : '#eab308', color: 'black', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: posting || !newPostContent.trim() ? 'not-allowed' : 'pointer', fontSize: '14px', marginLeft: 'auto' }}>{posting ? 'Posting...' : 'Post'}</button>
           </div>
-        </div>
+        ) : (
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', textAlign: 'center' }}>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>👋</div>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px' }}>Welcome to Driver Hub</h2>
+            <p style={{ color: '#666', fontSize: '14px', margin: '0 0 16px' }}>You're browsing as a guest. Sign up free to post, react and join the conversation.</p>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <a href="/signup" style={{ padding: '10px 20px', backgroundColor: '#eab308', color: 'black', borderRadius: '6px', textDecoration: 'none', fontWeight: 600, fontSize: '14px' }}>Sign up free</a>
+              <a href="/signin" style={{ padding: '10px 20px', backgroundColor: '#f3f4f6', color: '#333', borderRadius: '6px', textDecoration: 'none', fontWeight: 600, fontSize: '14px', border: '1px solid #d1d5db' }}>Sign in</a>
+            </div>
+          </div>
+        )}
 
         {posts.length === 0 ? (
           <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '40px 20px', textAlign: 'center', color: '#666', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>No posts yet. Be the first to share something!</div>
@@ -524,7 +573,7 @@ export default function FeedPage() {
 
                 {!isEditing && (
                   <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '10px', display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <ReactionPicker postId={post.id} userId={user?.id} reactions={reactions} onReact={handleReact} />
+                    <ReactionPicker postId={post.id} userId={user?.id} reactions={reactions} onReact={handleReact} isGuest={!user} onGuestAction={() => setShowSignupPrompt(true)} />
                     <button onClick={() => setExpandedComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 10px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', color: '#666', fontSize: '14px', borderRadius: '6px' }}>💬 {totalComments}</button>
                     <button onClick={() => handleSharePost(post)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 10px', border: 'none', backgroundColor: 'transparent', cursor: 'pointer', color: '#666', fontSize: '14px', borderRadius: '6px', marginLeft: 'auto' }}>🔗 Share</button>
                   </div>
@@ -546,7 +595,7 @@ export default function FeedPage() {
                                 <span style={{ color: '#999', fontSize: '12px' }}>{formatDate(comment.created_at)}</span>
                               </div>
                               <div style={{ display: 'flex', gap: '4px' }}>
-                                <button onClick={() => { if (isReplyingToThis) { setReplyingTo(null); setReplyText('') } else { setReplyingTo({ postId: post.id, commentId: comment.id, authorName: comment.profiles?.name || 'Anonymous' }); setReplyText('') } }} style={{ padding: '2px 6px', backgroundColor: isReplyingToThis ? '#eab308' : '#e5e7eb', color: isReplyingToThis ? 'black' : '#666', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '500' }}>{isReplyingToThis ? 'Cancel' : 'Reply'}</button>
+                                {user && <button onClick={() => { if (isReplyingToThis) { setReplyingTo(null); setReplyText('') } else { setReplyingTo({ postId: post.id, commentId: comment.id, authorName: comment.profiles?.name || 'Anonymous' }); setReplyText('') } }} style={{ padding: '2px 6px', backgroundColor: isReplyingToThis ? '#eab308' : '#e5e7eb', color: isReplyingToThis ? 'black' : '#666', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '500' }}>{isReplyingToThis ? 'Cancel' : 'Reply'}</button>}
                                 {canDeleteComment && <button onClick={() => handleDeleteComment(post.id, comment.id)} style={{ padding: '2px 6px', backgroundColor: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>🗑️</button>}
                               </div>
                             </div>
@@ -581,10 +630,16 @@ export default function FeedPage() {
                         </div>
                       )
                     })}
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                      <input type="text" value={newComments[post.id] || ''} onChange={(e) => setNewComments(prev => ({ ...prev, [post.id]: e.target.value }))} placeholder="Write a comment..." onKeyPress={(e) => { if (e.key === 'Enter') handleAddComment(post.id) }} style={{ flex: 1, padding: '10px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '14px', minWidth: 0 }} />
-                      <button onClick={() => handleAddComment(post.id)} style={{ padding: '10px 12px', backgroundColor: '#eab308', color: 'black', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '14px', flexShrink: 0 }}>Send</button>
-                    </div>
+                    {user ? (
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                        <input type="text" value={newComments[post.id] || ''} onChange={(e) => setNewComments(prev => ({ ...prev, [post.id]: e.target.value }))} placeholder="Write a comment..." onKeyPress={(e) => { if (e.key === 'Enter') handleAddComment(post.id) }} style={{ flex: 1, padding: '10px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '14px', minWidth: 0 }} />
+                        <button onClick={() => handleAddComment(post.id)} style={{ padding: '10px 12px', backgroundColor: '#eab308', color: 'black', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '14px', flexShrink: 0 }}>Send</button>
+                      </div>
+                    ) : (
+                      <div style={{ marginTop: '10px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px', textAlign: 'center', fontSize: '14px', color: '#666' }}>
+                        <a href="/signup" style={{ color: '#b45309', fontWeight: 600, textDecoration: 'none' }}>Sign up free</a> to join the conversation.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

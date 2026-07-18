@@ -44,11 +44,12 @@ export default function MarketplacePage() {
 
   const loadUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { window.location.href = '/signin'; return }
-    setUser(user)
-    const { data } = await supabase.from('profiles').select('name, region').eq('id', user.id).single()
-    if (!data?.name || !data?.region) { window.location.href = '/onboarding'; return }
-    setProfile(data)
+    if (user) {
+      setUser(user)
+      const { data } = await supabase.from('profiles').select('name, region').eq('id', user.id).single()
+      if (!data?.name || !data?.region) { window.location.href = '/onboarding'; return }
+      setProfile(data)
+    }
     setLoading(false)
   }
 
@@ -59,15 +60,25 @@ export default function MarketplacePage() {
       .in('category', ['insurance', 'cars', 'parts'])
       .order('featured', { ascending: false })
       .order('created_at', { ascending: false })
-    
+
     if (!error && data) {
       setListings(data)
     }
     setLoadingListings(false)
   }
 
-  const filteredListings = selectedCategory === 'all' 
-    ? listings 
+  // Clicking a category tab normally just filters the page. The Insurance tab
+  // is special: instead of filtering, it takes the driver to the quote form.
+  const handleCategoryClick = (categoryId: string) => {
+    if (categoryId === 'insurance') {
+      window.location.href = '/insurance'
+      return
+    }
+    setSelectedCategory(categoryId)
+  }
+
+  const filteredListings = selectedCategory === 'all'
+    ? listings
     : listings.filter(l => l.category === selectedCategory)
 
   const listingsByCategory = listings.reduce((acc, listing) => {
@@ -109,7 +120,7 @@ export default function MarketplacePage() {
           {CATEGORIES.map(cat => (
             <button
               key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
+              onClick={() => handleCategoryClick(cat.id)}
               style={{
                 padding: '8px 14px',
                 borderRadius: '20px',
@@ -173,18 +184,18 @@ export default function MarketplacePage() {
   )
 }
 
-function ListingCard({ listing, getCategoryColor, getCategoryInfo }: { 
-  listing: Listing, 
+function ListingCard({ listing, getCategoryColor, getCategoryInfo }: {
+  listing: Listing,
   getCategoryColor: (cat: string) => string,
   getCategoryInfo: (cat: string) => { id: string, label: string, icon: string }
 }) {
   const categoryInfo = getCategoryInfo(listing.category)
-  
+
   return (
-    <div style={{ 
-      backgroundColor: 'white', 
-      borderRadius: '12px', 
-      padding: '20px', 
+    <div style={{
+      backgroundColor: 'white',
+      borderRadius: '12px',
+      padding: '20px',
       boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
       border: listing.featured ? '2px solid #eab308' : '1px solid #e5e7eb',
       position: 'relative'
@@ -204,17 +215,17 @@ function ListingCard({ listing, getCategoryColor, getCategoryInfo }: {
           ⭐ Featured
         </div>
       )}
-      
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-        <div style={{ 
-          width: '50px', 
-          height: '50px', 
-          borderRadius: '8px', 
-          backgroundColor: getCategoryColor(listing.category), 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          fontSize: '24px' 
+        <div style={{
+          width: '50px',
+          height: '50px',
+          borderRadius: '8px',
+          backgroundColor: getCategoryColor(listing.category),
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '24px'
         }}>
           {categoryInfo.icon}
         </div>
@@ -223,16 +234,16 @@ function ListingCard({ listing, getCategoryColor, getCategoryInfo }: {
           <span style={{ fontSize: '12px', color: '#666' }}>{categoryInfo.label}</span>
         </div>
       </div>
-      
+
       <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#444', lineHeight: '1.5' }}>
         {listing.description}
       </p>
-      
+
       {listing.price && (
-        <div style={{ 
-          backgroundColor: '#f0fdf4', 
-          padding: '8px 12px', 
-          borderRadius: '6px', 
+        <div style={{
+          backgroundColor: '#f0fdf4',
+          padding: '8px 12px',
+          borderRadius: '6px',
           marginBottom: '12px',
           display: 'inline-block'
         }}>
@@ -241,38 +252,38 @@ function ListingCard({ listing, getCategoryColor, getCategoryInfo }: {
           </span>
         </div>
       )}
-      
+
       {listing.region && listing.region !== 'National 🇬🇧' && (
         <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
           📍 {listing.region}
         </div>
       )}
-      
+
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {listing.website_url && (
-          <a 
-            href={listing.website_url} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            style={{ 
-              padding: '8px 12px', 
-              backgroundColor: '#eab308', 
-              color: 'black', 
-              textDecoration: 'none', 
-              borderRadius: '6px', 
-              fontSize: '13px', 
-              fontWeight: '500' 
+          <a
+            href={listing.website_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              padding: '8px 12px',
+              backgroundColor: '#eab308',
+              color: 'black',
+              textDecoration: 'none',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: '500'
             }}
           >
             🌐 Website
           </a>
         )}
         {listing.contact_info && (
-          <span style={{ 
-            padding: '8px 12px', 
-            backgroundColor: '#f3f4f6', 
-            color: '#333', 
-            borderRadius: '6px', 
+          <span style={{
+            padding: '8px 12px',
+            backgroundColor: '#f3f4f6',
+            color: '#333',
+            borderRadius: '6px',
             fontSize: '13px'
           }}>
             📞 {listing.contact_info}

@@ -375,7 +375,7 @@ export default function ResourcesPage() {
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) {
-      window.location.href = '/signin'
+      setLoading(false)
       return
     }
 
