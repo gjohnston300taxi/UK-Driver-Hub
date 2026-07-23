@@ -54,6 +54,7 @@ export default function InsurancePage() {
   const [usageDetails, setUsageDetails] = useState('')
   const [claimsHistory, setClaimsHistory] = useState('No')
   const [consent, setConsent] = useState(false)
+  const consentText = 'I agree that UK Driver Hub may share these details with The Taxi Insurer and Gomigo so they can contact me about a quote, by phone or email.'
 
   useEffect(() => {
     loadUser()
@@ -123,7 +124,8 @@ export default function InsurancePage() {
       points_details: pointsDetails,
       usage_details: usageDetails,
       claims_history: claimsHistory,
-      consent
+      consent,
+      consent_text: consentText
     }
 
     const { error } = await supabase.from('insurance_enquiries').insert([{ user_id: user.id, ...payload }])
@@ -230,7 +232,7 @@ export default function InsurancePage() {
 
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', margin: '8px 0 20px 0', fontSize: '14px', color: '#374151' }}>
               <input required type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ marginTop: '3px' }} />
-              <span>I agree that UK Driver Hub may share these details with specialist insurance brokers and insurers so they can contact me about a quote, by phone or email. <a href="/privacy" style={{ color: '#b45309', textDecoration: 'none' }}>Privacy policy</a>.</span>
+              <span>{consentText}</span>
             </label>
 
             <button type="submit" disabled={submitting} style={{ width: '100%', padding: '14px', backgroundColor: submitting ? '#d1d5db' : '#eab308', color: 'black', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '16px', cursor: submitting ? 'not-allowed' : 'pointer' }}>{submitting ? 'Sending...' : 'Request my quote'}</button>
