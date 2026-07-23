@@ -43,6 +43,7 @@ export default function Header() {
     { href: '/blog', label: 'Blog', emoji: '📝' },
     { href: '/marketplace', label: 'Marketplace', emoji: '🏪' },
     { href: '/finance', label: 'Finance', emoji: '💰' },
+    { href: '/insurance', label: 'Insurance', emoji: '🛡️' },
     { href: '/resources', label: 'Resources', emoji: '📚' },
     { href: '/assistant', label: 'Legal & Industry Assistant', emoji: '🤖' },
     { href: '/profile', label: 'Profile', emoji: '👤' },
