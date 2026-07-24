@@ -33,6 +33,7 @@ export default function InsurancePage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [showSignupPrompt, setShowSignupPrompt] = useState(false)
+  const [signupPrefill, setSignupPrefill] = useState<{ name: string; email: string; phone: string } | null>(null)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -84,10 +85,6 @@ export default function InsurancePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) {
-      setShowSignupPrompt(true)
-      return
-    }
 
     const tomorrow = getTomorrowDate()
     if (!name || !phone || !postcode || !council || !coverStartDate) {
@@ -125,25 +122,33 @@ export default function InsurancePage() {
       usage_details: usageDetails,
       claims_history: claimsHistory,
       consent,
-      consent_text: consentText
-    }
-
-    const { error } = await supabase.from('insurance_enquiries').insert([{ user_id: user.id, ...payload }])
-    setSubmitting(false)
-
-    if (error) {
-      alert('Sorry, something went wrong sending your request: ' + error.message)
-      return
+      consent_text: consentText,
+      user_id: user?.id ?? null
     }
 
     try {
-      await fetch('/api/insurance-quote', {
+      const response = await fetch('/api/insurance-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
+
+      if (!response.ok) {
+        const errorJson = await response.json().catch(() => null)
+        throw new Error(errorJson?.error || 'Failed to submit quote')
+      }
     } catch (err) {
-      console.error('Email notification failed (enquiry still saved):', err)
+      console.error('Insurance submit failed:', err)
+      alert('Sorry, something went wrong sending your request. Please try again.')
+      setSubmitting(false)
+      return
+    }
+
+    setSubmitting(false)
+
+    if (!user) {
+      setSignupPrefill({ name, email, phone })
+      setShowSignupPrompt(true)
     }
 
     setSubmitted(true)
@@ -189,6 +194,12 @@ export default function InsurancePage() {
             <h3 style={{ margin: '0 0 8px 0', fontSize: '20px' }}>Thanks, {name || 'driver'}!</h3>
             <p style={{ color: '#666', margin: '0 0 8px 0', fontSize: '15px', lineHeight: 1.5 }}>Your details have been received. Our insurance partners will be in touch with a tailored quote soon.</p>
             <p style={{ color: '#9ca3af', margin: 0, fontSize: '13px' }}>You can close this page — we will take it from here.</p>
+            {!user && showSignupPrompt && signupPrefill && (
+              <div style={{ marginTop: '24px', padding: '16px', border: '1px solid #fcd34d', borderRadius: '10px', backgroundColor: '#fffbeb' }}>
+                <p style={{ margin: '0 0 10px 0', color: '#92400e', fontSize: '15px', lineHeight: 1.5 }}><strong>Want to save your details so you don't have to re-enter them next year?</strong><br />Create a free UK Driver Hub account.</p>
+                <a href={`/signup?name=${encodeURIComponent(signupPrefill.name)}&email=${encodeURIComponent(signupPrefill.email)}&phone=${encodeURIComponent(signupPrefill.phone)}`} style={{ display: 'inline-block', padding: '10px 16px', backgroundColor: '#eab308', color: 'black', borderRadius: '8px', textDecoration: 'none', fontWeight: 700 }}>Create free account</a>
+              </div>
+            )}
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
@@ -244,11 +255,11 @@ export default function InsurancePage() {
           <div onClick={() => setShowSignupPrompt(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
             <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: '16px', padding: '28px 24px', width: '100%', maxWidth: '380px', textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
               <div style={{ fontSize: '40px', marginBottom: '8px' }}>🛡️</div>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 700 }}>Sign up free to send your quote</h3>
-              <p style={{ color: '#666', margin: '0 0 20px 0', fontSize: '15px', lineHeight: 1.5 }}>Create a free account and we will send your details to our insurance partners for a tailored quote.</p>
-              <a href="/signup" style={{ display: 'block', padding: '13px', backgroundColor: '#eab308', color: 'black', borderRadius: '8px', textDecoration: 'none', fontWeight: 700, fontSize: '15px', marginBottom: '10px' }}>Sign up free</a>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 700 }}>Save your details for next time?</h3>
+              <p style={{ color: '#666', margin: '0 0 20px 0', fontSize: '15px', lineHeight: 1.5 }}>Your quote request is already on its way to our brokers. Create a free UK Driver Hub account and we'll remember your details, so renewing next year takes seconds.</p>
+              <a href={`/signup?name=${encodeURIComponent(signupPrefill?.name || '')}&email=${encodeURIComponent(signupPrefill?.email || '')}&phone=${encodeURIComponent(signupPrefill?.phone || '')}`} style={{ display: 'block', padding: '13px', backgroundColor: '#eab308', color: 'black', borderRadius: '8px', textDecoration: 'none', fontWeight: 700, fontSize: '15px', marginBottom: '10px' }}>Create free account</a>
               <a href="/signin" style={{ display: 'block', padding: '13px', backgroundColor: '#f3f4f6', color: '#333', borderRadius: '8px', textDecoration: 'none', fontWeight: 600, fontSize: '15px', marginBottom: '10px', border: '1px solid #d1d5db' }}>I already have an account</a>
-              <button onClick={() => setShowSignupPrompt(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '14px' }}>Back to form</button>
+              <button onClick={() => setShowSignupPrompt(false)} style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: '14px' }}>No thanks</button>
             </div>
           </div>
         )}

@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 // This route receives the insurance quote details from the /insurance page
 // and emails them to one or more configured partners using Resend.
@@ -13,6 +17,10 @@ export async function POST(request: Request) {
     const fromEmail = process.env.INSURANCE_FROM_EMAIL
     const partnersConfig = process.env.INSURANCE_PARTNERS
 
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      console.error('[insurance-quote] Missing Supabase server configuration')
+      return NextResponse.json({ error: 'Server configuration missing' }, { status: 500 })
+    }
     if (!apiKey) {
       console.error('[insurance-quote] Missing RESEND_API_KEY in .env.local')
       return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
@@ -23,6 +31,12 @@ export async function POST(request: Request) {
     }
 
     const resend = new Resend(apiKey)
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    })
 
     const clean = (value: unknown) => {
       if (value === undefined || value === null || value === '') return '&mdash;'
@@ -83,6 +97,19 @@ export async function POST(request: Request) {
         <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">Sent automatically by UK Driver Hub.</p>
       </div>
     `
+
+    const enquiryPayload = {
+      ...data,
+      user_id: typeof data.user_id === 'string' && data.user_id ? data.user_id : null,
+      consent: Boolean(data.consent),
+      consent_text: typeof data.consent_text === 'string' ? data.consent_text : null,
+    }
+
+    const { error: insertError } = await supabase.from('insurance_enquiries').insert([enquiryPayload])
+    if (insertError) {
+      console.error('[insurance-quote] Failed to save enquiry:', insertError)
+      return NextResponse.json({ error: 'Failed to save enquiry', details: insertError }, { status: 500 })
+    }
 
     const partners = partnersConfig
       .split(',')
