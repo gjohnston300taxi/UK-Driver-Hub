@@ -42,7 +42,7 @@ export default function Header() {
     { href: '/news', label: 'News', emoji: '📢' },
     { href: '/blog', label: 'Blog', emoji: '📝' },
     { href: '/marketplace', label: 'Marketplace', emoji: '🏪' },
-    { href: '/finance', label: 'Finance', emoji: '💰' },
+    { href: '/finance', label: 'My Earnings & Expenses', emoji: '💰' },
     { href: '/insurance', label: 'Insurance', emoji: '🛡️' },
     { href: '/resources', label: 'Resources', emoji: '📚' },
     { href: '/assistant', label: 'Legal & Industry Assistant', emoji: '🤖' },

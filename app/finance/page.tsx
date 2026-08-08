@@ -553,8 +553,8 @@ export default function FinancePage() {
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 8px 0' }}>💰 Finance Tracker</h2>
-            <p style={{ color: '#666', margin: 0 }}>{user ? "Know exactly what you're earning — and keep HMRC happy" : 'See how it works below — sign up free to save your own entries'}</p>
+            <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 8px 0' }}>💰 My Earnings & Expenses</h2>
+            <p style={{ color: '#666', margin: 0 }}>{user ? "Log what you earn and spend — then download it all for your accountant" : 'See how it works below — sign up free to save your own entries'}</p>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button onClick={() => openIncomeModal()} style={{ padding: '10px 16px', backgroundColor: '#eab308', color: 'black', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', flex: '1 1 auto', minWidth: '120px' }}>+ Add Income</button>
