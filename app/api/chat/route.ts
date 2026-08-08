@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
 
@@ -71,6 +73,35 @@ You're here to help drivers understand the legal side of the job and grow their 
 
 export async function POST(request: NextRequest) {
   try {
+    // --- Check the driver is signed in -------------------------------------
+    // This runs BEFORE anything is sent to Anthropic, so a signed-out visitor
+    // (or a script hitting this URL directly) can never spend your credits.
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll() {
+            // Not needed here - we are only reading who the user is.
+          },
+        },
+      }
+    )
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Please sign in to use the assistant.' },
+        { status: 401 }
+      )
+    }
+    // --- End of sign-in check ----------------------------------------------
+
     if (!ANTHROPIC_API_KEY) {
       return NextResponse.json(
         { error: 'API key not configured' },
