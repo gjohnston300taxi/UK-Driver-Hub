@@ -58,10 +58,10 @@ export default async function BlogPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
       {/* Hover effect for the post cards */}
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .blog-card { transition: box-shadow 0.2s, transform 0.2s; }
         .blog-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; transform: translateY(-2px); }
-      `}</style>
+      ` }} />
 
       {/* Hero Section */}
       <div style={{ backgroundColor: '#1f2937', color: 'white', padding: '60px 24px', textAlign: 'center' }}>

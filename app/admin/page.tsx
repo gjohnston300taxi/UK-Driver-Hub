@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import NewsManager from '@/components/admin/NewsManager'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -351,45 +352,7 @@ export default function AdminPage() {
         )}
 
         {/* News Tab */}
-        {activeTab === 'news' && (
-          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '18px', margin: 0 }}>News Articles ({news.length})</h2>
-              <button
-                onClick={() => { setEditingNews(null); setShowNewsForm(true) }}
-                style={{ padding: '8px 16px', backgroundColor: '#eab308', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
-              >
-                + Add News
-              </button>
-            </div>
-
-            {showNewsForm && (
-              <NewsForm
-                item={editingNews}
-                onSave={() => { setShowNewsForm(false); loadNews() }}
-                onCancel={() => setShowNewsForm(false)}
-              />
-            )}
-
-            <div style={{ display: 'grid', gap: '12px' }}>
-              {news.map(item => (
-                <div key={item.id} style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-                    <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: '11px', backgroundColor: '#eab308', padding: '2px 8px', borderRadius: '4px' }}>{item.category}</span>
-                      <h3 style={{ margin: '8px 0 4px', fontSize: '15px' }}>{item.title}</h3>
-                      <p style={{ margin: 0, fontSize: '13px', color: '#666' }}>{item.source} • {formatDate(item.created_at)}</p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => { setEditingNews(item); setShowNewsForm(true) }} style={{ padding: '4px 8px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Edit</button>
-                      <button onClick={() => deleteNews(item.id)} style={{ padding: '4px 8px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Delete</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {activeTab === 'news' && <NewsManager />}
 
         {/* Companies Tab */}
         {activeTab === 'companies' && (
