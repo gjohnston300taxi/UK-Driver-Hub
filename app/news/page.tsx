@@ -1,126 +1,81 @@
-'use client'
+import type { Metadata } from 'next'
+import { createPublicClient } from '@/lib/supabase/public'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
+// Built on the server so Google can read the headlines.
+// Refreshes at most every 10 minutes so new stories show up.
+export const revalidate = 600
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+export const metadata: Metadata = {
+  title: 'UK Taxi & Private Hire Industry News',
+  description:
+    'The latest news for UK taxi, private hire and rideshare drivers: licensing, council and TfL updates, Uber and Bolt, fares, insurance and regulation.',
+  alternates: { canonical: '/news' },
+  openGraph: { url: '/news', title: 'UK Taxi & Private Hire Industry News' },
+}
 
 interface NewsItem {
   id: string
   title: string
-  summary: string
-  source: string
-  source_url: string
-  category: string
+  summary: string | null
+  source: string | null
+  source_url: string | null
+  category: string | null
   created_at: string
 }
 
-export default function NewsPage() {
-  const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [news, setNews] = useState<NewsItem[]>([])
-  const [loadingNews, setLoadingNews] = useState(true)
-
-  useEffect(() => {
-    loadUser()
-  }, [])
-
-  const loadUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      setUser(user)
-      const { data } = await supabase.from('profiles').select('name, region').eq('id', user.id).single()
-      if (!data?.name || !data?.region) { window.location.href = '/onboarding'; return }
-      setProfile(data)
-    }
-    setLoading(false)
-    loadNews()
+async function getNews(): Promise<NewsItem[]> {
+  try {
+    const supabase = createPublicClient()
+    const { data, error } = await supabase
+      .from('news')
+      .select('id, title, summary, source, source_url, category, created_at')
+      .order('created_at', { ascending: false })
+    if (error || !data) return []
+    return data
+  } catch {
+    return []
   }
+}
 
-  const loadNews = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('news')
-        .select('*')
-        .order('created_at', { ascending: false })
+// Fixed dates (e.g. "3 Oct 2026") so the page is the same for Google and visitors
+const formatDate = (dateString: string) =>
+  new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 
-      if (!error && data) {
-        setNews(data)
-      }
-    } catch (err) {
-      console.error('Error loading news:', err)
-    }
-    setLoadingNews(false)
-  }
+const getPreview = (text: string | null, maxLength: number = 150) => {
+  if (!text) return ''
+  if (text.length <= maxLength) return text
+  return text.substring(0, maxLength).trim() + '...'
+}
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffDays = Math.floor(diffMs / 86400000)
-    if (diffDays === 0) return 'Today'
-    if (diffDays === 1) return 'Yesterday'
-    if (diffDays < 7) return `${diffDays} days ago`
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-  }
-
-  const getPreview = (text: string, maxLength: number = 150) => {
-    if (!text) return ''
-    if (text.length <= maxLength) return text
-    return text.substring(0, maxLength).trim() + '...'
-  }
-
-  if (loading) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
-        <p style={{ fontSize: '18px', color: '#666' }}>Loading...</p>
-      </div>
-    )
-  }
+export default async function NewsPage() {
+  const news = await getNews()
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
-      <main style={{ maxWidth: '680px', margin: '0 auto', padding: '16px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 16px 0' }}>Industry News</h2>
+      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '16px' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 16px 0' }}>Industry News</h1>
 
-        {loadingNews ? (
-          <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '40px 20px', textAlign: 'center', color: '#666', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            Loading news...
-          </div>
-        ) : !news || news.length === 0 ? (
+        {news.length === 0 ? (
           <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '40px 20px', textAlign: 'center', color: '#666', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
             No news articles yet. Check back soon!
           </div>
         ) : (
           <div style={{ display: 'grid', gap: '16px' }}>
             {news.map((item) => (
-              
-                <a key={item.id}
+              <a
+                key={item.id}
                 href={`/news/${item.id}`}
-                style={{
-                  display: 'block',
-                  backgroundColor: 'white',
-                  borderRadius: '8px',
-                  padding: '20px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  border: '1px solid #e5e7eb'
-                }}
+                style={{ display: 'block', backgroundColor: 'white', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', textDecoration: 'none', color: 'inherit', border: '1px solid #e5e7eb' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                   <span style={{ padding: '4px 10px', backgroundColor: '#eab308', color: 'black', borderRadius: '12px', fontSize: '12px', fontWeight: '500' }}>
                     {item.category || 'News'}
                   </span>
-                  <span style={{ fontSize: '13px', color: '#999' }}>{formatDate(item.created_at)}</span>
+                  <time dateTime={item.created_at} style={{ fontSize: '13px', color: '#999' }}>{formatDate(item.created_at)}</time>
                 </div>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600', lineHeight: '1.3', color: '#111' }}>
+                <h2 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600', lineHeight: '1.3', color: '#111' }}>
                   {item.title}
-                </h3>
+                </h2>
                 {item.source && (
                   <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#888' }}>
                     {item.source}
@@ -136,7 +91,7 @@ export default function NewsPage() {
             ))}
           </div>
         )}
-      </main>
+      </div>
     </div>
   )
 }

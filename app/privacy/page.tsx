@@ -27,6 +27,7 @@ export default function PrivacyPage() {
             <li style={{ marginBottom: '4px' }}>Account and profile information</li>
             <li style={{ marginBottom: '4px' }}>Location or region (if provided)</li>
             <li style={{ marginBottom: '4px' }}>Content you submit to the Platform</li>
+            <li style={{ marginBottom: '4px' }}>Insurance quote details, if you request a quote (see section 5)</li>
             <li style={{ marginBottom: '4px' }}>Technical and usage data (IP address, browser type, interactions)</li>
           </ul>
           <p style={{ marginBottom: '16px' }}>
@@ -76,14 +77,59 @@ export default function PrivacyPage() {
 
           <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
 
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>5. Third-Party Processors</h2>
+          <h2 id="insurance-quotes" style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>5. Insurance Quote Requests</h2>
+          <p style={{ marginBottom: '16px' }}>
+            If you use our insurance quote form, we collect the details you enter so that our insurance partners can contact you with a quote. You do not need an account to request a quote.
+          </p>
+
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>What we collect</h3>
+          <ul style={{ marginBottom: '16px', paddingLeft: '24px' }}>
+            <li style={{ marginBottom: '4px' }}>Your name, phone number, email address and postcode</li>
+            <li style={{ marginBottom: '4px' }}>Licensing details: your licensing council, licence type, how long you have held your taxi or private hire badge and full driving licence</li>
+            <li style={{ marginBottom: '4px' }}>Vehicle details: make, model, registration and estimated annual mileage</li>
+            <li style={{ marginBottom: '4px' }}>Cover details: cover type, start date, no-claims years and how the vehicle is used</li>
+            <li style={{ marginBottom: '4px' }}>Driving history: whether you have any penalty points, and whether you have had claims or convictions in the last 5 years (yes or no answers only, no details)</li>
+            <li style={{ marginBottom: '4px' }}>A record of the consent you gave and when you gave it</li>
+          </ul>
+
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>Why we collect it and our lawful basis</h3>
+          <p style={{ marginBottom: '16px' }}>
+            We use these details only to pass your quote request to our insurance partners so they can contact you by phone or email. Our lawful basis is your <strong>consent</strong>, which you give by ticking the consent box on the form.
+          </p>
+          <p style={{ marginBottom: '16px' }}>
+            We only ask yes or no about penalty points, claims and convictions. We do not ask for details of any offence; if the insurer needs them, they will ask you directly. We only share these answers with the insurance partners named on the form, and we do not use them for anything else.
+          </p>
+
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>Who we share it with</h3>
+          <p style={{ marginBottom: '8px' }}>We send your quote request to the insurance partners named on the form at the time you submit it (currently The Taxi Insurer and Gomigo). Once they receive it, they will handle your details under their own privacy policies.</p>
+          <p style={{ marginBottom: '16px' }}>
+            We also use trusted service providers to store your request securely (Supabase) and to send it by email (Resend).
+          </p>
+
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>How long we keep it</h3>
+          <p style={{ marginBottom: '16px' }}>
+            We keep quote requests for 1 month from the date you submit them, so we can deal with any follow-up questions. After that they are automatically deleted from our systems. You can ask us to delete your request sooner at any time. Our insurance partners keep their own copy under their own privacy policies.
+          </p>
+
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>Withdrawing consent</h3>
+          <p style={{ marginBottom: '16px' }}>
+            You can withdraw your consent at any time by emailing <a href="mailto:info@ukdriverhub.org" style={{ color: '#2563eb' }}>info@ukdriverhub.org</a>. We will delete your request and ask our partners to stop contacting you. This does not affect anything we did with your consent before you withdrew it.
+          </p>
+
+          <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
+
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>6. Third-Party Processors</h2>
           <p style={{ marginBottom: '8px' }}>We may share limited data with trusted service providers for:</p>
           <ul style={{ marginBottom: '16px', paddingLeft: '24px' }}>
             <li style={{ marginBottom: '4px' }}>Hosting and infrastructure</li>
             <li style={{ marginBottom: '4px' }}>Analytics and performance monitoring</li>
+            <li style={{ marginBottom: '4px' }}>Sending emails</li>
           </ul>
           <p style={{ marginBottom: '16px' }}>
-            We do not sell personal data.
+            We do not sell personal data, and we are not paid for passing on insurance quote requests.
+          </p>
+          <p style={{ marginBottom: '16px' }}>
+            If you request an insurance quote, we share your request with our insurance partners as explained in section 5.
           </p>
           <p style={{ marginBottom: '16px' }}>
             Third-party services linked or advertised operate under their own privacy policies.
@@ -91,7 +137,7 @@ export default function PrivacyPage() {
 
           <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
 
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>6. Cookie Policy</h2>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>7. Cookie Policy</h2>
           
           <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>What are cookies?</h3>
           <p style={{ marginBottom: '16px' }}>
@@ -120,14 +166,14 @@ export default function PrivacyPage() {
 
           <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
 
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>7. Data Security</h2>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>8. Data Security</h2>
           <p style={{ marginBottom: '16px' }}>
             We apply appropriate technical and organisational measures to protect personal data. However, no system can be guaranteed to be fully secure.
           </p>
 
           <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
 
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>8. Your Rights</h2>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>9. Your Rights</h2>
           <p style={{ marginBottom: '8px' }}>Under UK GDPR, you have the right to:</p>
           <ul style={{ marginBottom: '16px', paddingLeft: '24px' }}>
             <li style={{ marginBottom: '4px' }}>Access your personal data</li>
@@ -151,16 +197,17 @@ export default function PrivacyPage() {
 
           <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
 
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>9. Policy Updates</h2>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>10. Policy Updates</h2>
           <p style={{ marginBottom: '16px' }}>
             We may update this Privacy Policy periodically. Continued use of the Platform indicates acceptance of the updated policy.
           </p>
 
           <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
 
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>10. Contact</h2>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>11. Contact</h2>
           <p style={{ marginBottom: '16px' }}>
-            For privacy or data protection enquiries, please contact us through the Platform.
+            For privacy or data protection enquiries, including requests to see or delete your data, email us at{' '}
+            <a href="mailto:info@ukdriverhub.org" style={{ color: '#2563eb' }}>info@ukdriverhub.org</a>.
           </p>
 
           <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
@@ -179,7 +226,7 @@ export default function PrivacyPage() {
           <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
 
           <p style={{ marginBottom: '16px', fontStyle: 'italic', color: '#666', textAlign: 'center' }}>
-            Last updated: January 2026
+            Last updated: October 2026
           </p>
         </div>
       </main>

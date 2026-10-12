@@ -50,11 +50,11 @@ export default function InsurancePage() {
   const [coverType, setCoverType] = useState('Comprehensive')
   const [estimatedAnnualMileage, setEstimatedAnnualMileage] = useState('')
   const [noClaimsYears, setNoClaimsYears] = useState('')
-  const [pointsCount, setPointsCount] = useState('')
-  const [pointsDetails, setPointsDetails] = useState('')
+  const [hasPoints, setHasPoints] = useState('No')
   const [usageDetails, setUsageDetails] = useState('')
   const [claimsHistory, setClaimsHistory] = useState('No')
   const [consent, setConsent] = useState(false)
+  const [website, setWebsite] = useState('') // hidden spam trap, real people leave it empty
   const consentText = 'I agree that UK Driver Hub may share these details with The Taxi Insurer and Gomigo so they can contact me about a quote, by phone or email.'
 
   useEffect(() => {
@@ -117,29 +117,39 @@ export default function InsurancePage() {
       cover_type: coverType,
       estimated_annual_mileage: estimatedAnnualMileage,
       no_claims_years: noClaimsYears,
-      points_count: pointsCount,
-      points_details: pointsDetails,
+      points_count: hasPoints,
       usage_details: usageDetails,
       claims_history: claimsHistory,
       consent,
       consent_text: consentText,
-      user_id: user?.id ?? null
+      website
     }
 
     try {
+      // If the driver is signed in, send their login token so the server
+      // can link the request to their account safely
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+
       const response = await fetch('/api/insurance-quote', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload)
       })
 
       if (!response.ok) {
         const errorJson = await response.json().catch(() => null)
-        throw new Error(errorJson?.error || 'Failed to submit quote')
+        // Show helpful messages (e.g. missing field, already sent) but hide technical ones
+        const friendly = response.status === 400 || response.status === 429
+        throw new Error(friendly && errorJson?.error ? errorJson.error : 'Failed to submit quote')
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Insurance submit failed:', err)
-      alert('Sorry, something went wrong sending your request. Please try again.')
+      const message = err?.message && err.message !== 'Failed to submit quote'
+        ? err.message
+        : 'Sorry, something went wrong sending your request. Please try again.'
+      alert(message)
       setSubmitting(false)
       return
     }
@@ -204,6 +214,10 @@ export default function InsurancePage() {
         ) : (
           <form onSubmit={handleSubmit} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
             <h3 style={{ fontSize: '18px', fontWeight: 600, margin: '0 0 4px 0' }}>Request a quote</h3>
+            {/* Spam trap: hidden from people, but bots fill it in */}
+            <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: '1px', height: '1px', overflow: 'hidden' }}>
+              <label>Leave this empty<input type="text" tabIndex={-1} autoComplete="off" value={website} onChange={e => setWebsite(e.target.value)} /></label>
+            </div>
             <p style={{ color: '#9ca3af', fontSize: '13px', margin: '0 0 20px 0' }}>The more detail you give, the more accurate your quote.</p>
 
             <h4 style={sectionHeading}>Your contact details</h4>
@@ -236,14 +250,13 @@ export default function InsurancePage() {
               <div style={{ marginBottom: '16px' }}><label style={labelStyle}>Cover type</label><select style={inputStyle} value={coverType} onChange={e => setCoverType(e.target.value)}><option>Comprehensive</option><option>Third Party, Fire &amp; Theft</option><option>Third Party Only</option></select></div>
               <div style={{ marginBottom: '16px' }}><label style={labelStyle}>Years no-claims bonus</label><input style={inputStyle} value={noClaimsYears} onChange={e => setNoClaimsYears(e.target.value)} placeholder="e.g. 3" /></div>
             </div>
-            <div style={{ marginBottom: '16px' }}><label style={labelStyle}>Penalty points on your licence</label><input style={inputStyle} value={pointsCount} onChange={e => setPointsCount(e.target.value)} placeholder="e.g. 3, or 0 if none" /></div>
-            <div style={{ marginBottom: '16px' }}><label style={labelStyle}>What were the points for? (offence and date)</label><input style={inputStyle} value={pointsDetails} onChange={e => setPointsDetails(e.target.value)} placeholder="e.g. SP30 speeding, March 2024" /></div>
+            <div style={{ marginBottom: '16px' }}><label style={labelStyle}>Do you have any penalty points on your licence?</label><select style={inputStyle} value={hasPoints} onChange={e => setHasPoints(e.target.value)}><option>No</option><option>Yes</option></select><p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#6b7280' }}>If yes, the insurer will ask you for the details when they call.</p></div>
             <div style={{ marginBottom: '16px' }}><label style={labelStyle}>How is the vehicle used? (optional)</label><input style={inputStyle} value={usageDetails} onChange={e => setUsageDetails(e.target.value)} placeholder="e.g. Private hire, school runs, airport work" /></div>
             <div style={{ marginBottom: '16px' }}><label style={labelStyle}>Claims or convictions in the last 5 years?</label><select style={inputStyle} value={claimsHistory} onChange={e => setClaimsHistory(e.target.value)}><option>No</option><option>Yes</option><option>Not sure</option></select><p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#6b7280' }}>A yes is fine — it just tells us which brokers to send you to.</p></div>
 
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', margin: '8px 0 20px 0', fontSize: '14px', color: '#374151' }}>
               <input required type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ marginTop: '3px' }} />
-              <span>{consentText}</span>
+              <span>{consentText} See our <a href="/privacy#insurance-quotes" target="_blank" rel="noopener noreferrer" style={{ color: '#b45309', fontWeight: 600 }}>privacy policy</a> for how we handle your details.</span>
             </label>
 
             <button type="submit" disabled={submitting} style={{ width: '100%', padding: '14px', backgroundColor: submitting ? '#d1d5db' : '#eab308', color: 'black', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '16px', cursor: submitting ? 'not-allowed' : 'pointer' }}>{submitting ? 'Sending...' : 'Request my quote'}</button>
