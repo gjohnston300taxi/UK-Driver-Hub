@@ -81,6 +81,23 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 const formatDate = (dateString: string) =>
   new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 
+// Turn simple formatting in blog text into safe HTML:
+// **bold**, [link text](https://... or /page) and bare https:// web addresses
+function inlineFormat(text: string) {
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  html = html.replace(/\[([^\]]+)\]\(((?:https?:\/\/|\/)[^\s)]+)\)/g, (_m, label, url) => {
+    const external = url.startsWith('http')
+    return `<a href="${url.replace(/"/g, '&quot;')}"${external ? ' target="_blank" rel="noopener noreferrer"' : ''} style="color:#b45309;font-weight:600">${label}</a>`
+  })
+  html = html.replace(/(^|[\s(])(https?:\/\/[^\s<)]+[^\s<).,!?])/g, (_m, pre, url) =>
+    `${pre}<a href="${url.replace(/"/g, '&quot;')}" target="_blank" rel="noopener noreferrer" style="color:#b45309;font-weight:600">${url}</a>`)
+  return html
+}
+
 // Convert markdown-style content to HTML (same rules as before)
 function renderContent(content: string) {
   const lines = (content || '').split('\n')
@@ -95,13 +112,13 @@ function renderContent(content: string) {
         listType === 'ul' ? (
           <ul key={`list-${elements.length}`} style={{ marginBottom: '16px', paddingLeft: '24px' }}>
             {items.map((item, i) => (
-              <li key={i} style={{ marginBottom: '8px', lineHeight: '1.7' }}>{item}</li>
+              <li key={i} style={{ marginBottom: '8px', lineHeight: '1.7' }} dangerouslySetInnerHTML={{ __html: inlineFormat(item) }} />
             ))}
           </ul>
         ) : (
           <ol key={`list-${elements.length}`} style={{ marginBottom: '16px', paddingLeft: '24px' }}>
             {items.map((item, i) => (
-              <li key={i} style={{ marginBottom: '8px', lineHeight: '1.7' }}>{item}</li>
+              <li key={i} style={{ marginBottom: '8px', lineHeight: '1.7' }} dangerouslySetInnerHTML={{ __html: inlineFormat(item) }} />
             ))}
           </ol>
         )
@@ -153,7 +170,7 @@ function renderContent(content: string) {
       flushList()
     } else {
       flushList()
-      const processedLine = trimmedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      const processedLine = inlineFormat(trimmedLine)
       elements.push(
         <p
           key={index}
