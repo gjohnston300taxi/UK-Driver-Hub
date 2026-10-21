@@ -69,7 +69,12 @@ const preview = (text: string | null, max = 220) => {
 
 function NewsCard({ item, featured = false }: { item: NewsItem; featured?: boolean }) {
   return (
-    <a href={`/news/${item.id}`} className={`news-card${featured ? ' news-card--featured' : ''}`}>
+    <a href={`/news/${item.id}`} className={`news-card${featured ? ' news-card--featured' : ''}${item.image_url ? ' news-card--pic' : ''}`}>
+      {item.image_url && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={item.image_url} alt="" className="news-img" width={1200} height={675} loading={featured ? 'eager' : 'lazy'} />
+      )}
+      <div className="news-text">
       <div className="news-meta">
         <span className="news-pill">{item.category || 'Industry News'}</span>
         <time dateTime={item.created_at}>{formatNewsDate(item.created_at)}</time>
@@ -83,6 +88,7 @@ function NewsCard({ item, featured = false }: { item: NewsItem; featured?: boole
         </div>
       )}
       <span className="news-more">Read more →</span>
+      </div>
     </a>
   )
 }
@@ -117,6 +123,15 @@ export default async function NewsPage({ searchParams }: { searchParams: SearchP
         .news-card { display: flex; flex-direction: column; background: #fff; border-radius: 14px; padding: 20px; text-decoration: none; color: inherit; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: box-shadow .15s, transform .15s, border-color .15s; }
         .news-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); border-color: #eab308; }
         .news-card--featured { margin-bottom: 16px; padding: 28px; border-left: 6px solid #eab308; }
+        .news-text { display: flex; flex-direction: column; flex: 1; }
+        .news-card--pic { padding: 0; overflow: hidden; }
+        .news-card--pic .news-text { padding: 20px; }
+        .news-img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: #1e293b; }
+        .news-card--featured.news-card--pic .news-text { padding: 24px 28px; }
+        @media (min-width: 760px) {
+          .news-card--featured.news-card--pic { flex-direction: row; }
+          .news-card--featured.news-card--pic .news-img { width: 46%; flex: 0 0 46%; aspect-ratio: auto; min-height: 100%; }
+        }
         .news-card--featured .news-title { font-size: clamp(22px, 3vw, 28px); }
         .news-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; color: #6b7280; }
         .news-pill { background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }

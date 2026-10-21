@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createPublicClient } from '@/lib/supabase/public'
 import { SITE_URL, SITE_NAME } from '@/lib/site'
-import { NEWS_FONT, formatNewsDate, type NewsItem } from '@/lib/news'
+import { NEWS_FONT, formatNewsDate, absoluteImageUrl, type NewsItem } from '@/lib/news'
 
 // News articles are free to read for everyone (no sign-in),
 // and built on the server so Google can read them.
@@ -47,12 +47,14 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   if (!article) return { title: 'Article not found', robots: { index: false } }
   const description = makeDescription(article)
   const url = `/news/${article.id}`
+  const image = absoluteImageUrl(article.image_url, SITE_URL)
+  const images = image ? [{ url: image, width: 1200, height: 675, alt: article.title }] : undefined
   return {
     title: article.title,
     description,
     alternates: { canonical: url },
-    openGraph: { type: 'article', url, title: article.title, description, publishedTime: article.created_at },
-    twitter: { card: 'summary', title: article.title, description },
+    openGraph: { type: 'article', url, title: article.title, description, publishedTime: article.created_at, ...(images ? { images } : {}) },
+    twitter: { card: image ? 'summary_large_image' : 'summary', title: article.title, description, ...(image ? { images: [image] } : {}) },
   }
 }
 
@@ -76,7 +78,7 @@ export default async function NewsArticlePage({ params }: { params: { id: string
     headline: article.title,
     description: makeDescription(article),
     datePublished: article.created_at,
-    image: [`${SITE_URL}/logo.png`],
+    image: [absoluteImageUrl(article.image_url, SITE_URL) || `${SITE_URL}/logo.png`],
     publisher: { '@type': 'Organization', name: SITE_NAME, logo: { '@type': 'ImageObject', url: `${SITE_URL}/logo.png` } },
     mainEntityOfPage: pageUrl,
     ...(article.source_url ? { isBasedOn: article.source_url } : {}),
@@ -94,6 +96,7 @@ export default async function NewsArticlePage({ params }: { params: { id: string
         .article-pill { background: #fef3c7; color: #92400e; padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; text-decoration: none; }
         .article-card h1 { margin: 0 0 12px; font-size: clamp(24px, 4vw, 32px); line-height: 1.25; font-weight: 800; letter-spacing: -0.02em; }
         .article-source { margin: 0 0 20px; font-size: 14px; color: #6b7280; }
+        .article-img { display: block; width: calc(100% + 2 * clamp(20px, 4vw, 36px)); max-width: none; height: auto; aspect-ratio: 16 / 9; object-fit: cover; margin: 0 calc(-1 * clamp(20px, 4vw, 36px)) 22px; background: #1e293b; }
         .article-text { font-size: 17px; line-height: 1.75; color: #374151; white-space: pre-wrap; margin: 0; }
         .article-takeaway { margin: 24px 0 0; padding: 16px 18px; background: #fffbeb; border: 1px solid #fde68a; border-left: 5px solid #eab308; border-radius: 10px; }
         .article-takeaway h2 { margin: 0 0 6px; font-size: 15px; font-weight: 800; color: #92400e; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -125,6 +128,11 @@ export default async function NewsArticlePage({ params }: { params: { id: string
 
           <h1>{article.title}</h1>
           {article.source && <p className="article-source">Source: <strong>{article.source}</strong></p>}
+
+          {article.image_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={article.image_url} alt="" className="article-img" width={1200} height={675} />
+          )}
 
           <p className="article-text">{article.summary}</p>
 

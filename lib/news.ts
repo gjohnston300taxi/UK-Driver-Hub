@@ -22,7 +22,12 @@ export interface NewsItem {
   source_url: string | null
   category: string | null
   created_at: string
+  image_url?: string | null
 }
+
+// Turns a picture address into a full web address (needed for social media previews)
+export const absoluteImageUrl = (url: string | null | undefined, siteUrl: string) =>
+  !url ? null : url.startsWith('http') ? url : `${siteUrl}${url.startsWith('/') ? '' : '/'}${url}`
 
 export const formatNewsDate = (dateString: string) =>
   new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })

@@ -16,6 +16,30 @@ const formatDate = (d: string) =>
 
 const todayInput = () => new Date().toISOString().slice(0, 10)
 
+// Shrinks a picture to 1200 pixels wide (16:9) before uploading, so pages load fast
+const resizeToJpeg = (file: File): Promise<Blob> =>
+  new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const width = 1200
+      const height = 675
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { reject(new Error('No canvas')); return }
+      // Crop to fill 16:9 without stretching
+      const scale = Math.max(width / img.width, height / img.height)
+      const w = img.width * scale
+      const h = img.height * scale
+      ctx.drawImage(img, (width - w) / 2, (height - h) / 2, w, h)
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not process picture'))), 'image/jpeg', 0.85)
+      URL.revokeObjectURL(img.src)
+    }
+    img.onerror = () => reject(new Error('Could not load picture'))
+    img.src = URL.createObjectURL(file)
+  })
+
 // Simple text tidy for comparing titles
 const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim()
 
@@ -193,6 +217,27 @@ function NewsForm({
   const [source, setSource] = useState(item?.source || '')
   const [category, setCategory] = useState(item?.category || NEWS_CATEGORIES[0])
   const [date, setDate] = useState(item ? item.created_at.slice(0, 10) : todayInput())
+  const [imageUrl, setImageUrl] = useState(item?.image_url || '')
+  const [uploading, setUploading] = useState(false)
+
+  const uploadPicture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) { alert('Please choose a picture file (JPG or PNG).'); return }
+    setUploading(true)
+    try {
+      const blob = await resizeToJpeg(file)
+      const path = `news-images/news-${Date.now()}.jpg`
+      const { error } = await supabase.storage.from('posts').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' })
+      if (error) { alert('Could not upload the picture. Please try again.\n\n' + error.message); return }
+      setImageUrl(supabase.storage.from('posts').getPublicUrl(path).data.publicUrl)
+    } catch {
+      alert('Could not use that picture. Please try a different one.')
+    } finally {
+      setUploading(false)
+    }
+  }
   const [fetching, setFetching] = useState(false)
   const [fetchNote, setFetchNote] = useState('')
   const [saving, setSaving] = useState(false)
@@ -248,6 +293,7 @@ function NewsForm({
       source_url: sourceUrl.trim(),
       category,
       created_at: time,
+      image_url: imageUrl.trim() || null,
     }
 
     const { error } = item
@@ -315,8 +361,22 @@ function NewsForm({
           </div>
         </div>
 
+        <div>
+          <label style={label}>Picture <span style={{ fontWeight: 400, color: '#6b7280' }}>(optional)</span></label>
+          {imageUrl ? (
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imageUrl} alt="" style={{ width: '200px', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+              <button type="button" onClick={() => setImageUrl('')} style={btn('#fee2e2', '#991b1b')}>Remove picture</button>
+            </div>
+          ) : (
+            <input type="file" accept="image/*" onChange={uploadPicture} disabled={uploading} style={{ fontSize: '14px' }} />
+          )}
+          <p style={help}>{uploading ? 'Uploading...' : 'A wide picture works best. It is cropped to 16:9 automatically. Only use pictures you made or have permission to use.'}</p>
+        </div>
+
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={save} disabled={saving} style={btn('#eab308')}>{saving ? 'Saving...' : item ? 'Save changes' : 'Publish story'}</button>
+          <button onClick={save} disabled={saving || uploading} style={btn('#eab308')}>{saving ? 'Saving...' : item ? 'Save changes' : 'Publish story'}</button>
           <button onClick={onCancel} style={btn('#e5e7eb')}>Cancel</button>
         </div>
       </div>
