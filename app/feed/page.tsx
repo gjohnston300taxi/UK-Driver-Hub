@@ -475,6 +475,23 @@ export default function FeedPage() {
           </div>
         )}
 
+        {/* Social media strip: follow Spreadsheet Stan */}
+        <div style={{ backgroundColor: '#1f2937', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #eab308', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+          <div style={{ minWidth: '180px' }}>
+            <div style={{ color: '#eab308', fontWeight: 700, fontSize: '15px' }}>🎬 Watch Spreadsheet Stan</div>
+            <div style={{ color: '#d1d5db', fontSize: '13px', marginTop: '2px' }}>60-second driver news &amp; money tips</div>
+          </div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {[
+              { href: 'https://www.tiktok.com/@ukdriver.hub', label: '🎵 TikTok' },
+              { href: 'https://www.youtube.com/@ukdriver-hub', label: '▶️ YouTube' },
+              { href: 'https://www.facebook.com/UKDriverHub', label: '👍 Facebook' },
+            ].map((s) => (
+              <a key={s.href} href={s.href} target="_blank" rel="noopener noreferrer" style={{ padding: '7px 10px', backgroundColor: '#eab308', color: 'black', borderRadius: '6px', textDecoration: 'none', fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap' }}>{s.label}</a>
+            ))}
+          </div>
+        </div>
+
         {user ? (
           <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '16px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
             <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder={userHasPosted ? "What's happening in your driving world?" : "Tell us a bit about yourself, what city you're working in and how many years have you been a cab driver"} maxLength={1000} style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '6px', minHeight: '80px', resize: 'vertical', fontSize: '16px', boxSizing: 'border-box', fontFamily: 'inherit' }} />
