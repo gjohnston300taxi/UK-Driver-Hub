@@ -57,6 +57,12 @@ const organisationJsonLd = {
       logo: `${SITE_URL}/logo.png`,
       email: 'info@ukdriverhub.org',
       areaServed: 'GB',
+      // The official social media accounts, so Google links them to this site
+      sameAs: [
+        'https://www.tiktok.com/@ukdriver.hub',
+        'https://www.youtube.com/@ukdriver-hub',
+        'https://www.facebook.com/UKDriverHub',
+      ],
     },
     {
       '@type': 'WebSite',

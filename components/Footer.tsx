@@ -116,6 +116,44 @@ export default function Footer() {
               </p>
             </div>
           </div>
+
+          {/* Social Links */}
+          <div>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              marginBottom: '16px',
+              color: '#eab308'
+            }}>
+              Follow Us
+            </h3>
+            <nav aria-label="UK Driver Hub on social media" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <a
+                href="https://www.tiktok.com/@ukdriver.hub"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'white', textDecoration: 'none', fontSize: '14px' }}
+              >
+                🎵 TikTok
+              </a>
+              <a
+                href="https://www.youtube.com/@ukdriver-hub"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'white', textDecoration: 'none', fontSize: '14px' }}
+              >
+                ▶️ YouTube
+              </a>
+              <a
+                href="https://www.facebook.com/UKDriverHub"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'white', textDecoration: 'none', fontSize: '14px' }}
+              >
+                👍 Facebook
+              </a>
+            </nav>
+          </div>
         </div>
 
         {/* Feedback Link */}
