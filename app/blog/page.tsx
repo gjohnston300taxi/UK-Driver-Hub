@@ -2,9 +2,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createPublicClient } from '@/lib/supabase/public'
 
-// This page is now built on the server, so Google can read every post title.
-// It refreshes at most every 10 minutes so new posts show up.
-export const revalidate = 600
+// This page is built on the server, so Google can read every post title.
+// It is built fresh on every visit, so a newly published post shows up straight away.
+// (The old 10-minute cache got stuck and kept showing an old list.)
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'Blog: Tips & Guides for UK Taxi and Private Hire Drivers',
