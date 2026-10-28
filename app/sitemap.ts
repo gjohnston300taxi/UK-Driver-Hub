@@ -4,7 +4,9 @@ import { SITE_URL } from '@/lib/site'
 
 // Google reads this at https://www.ukdriverhub.org/sitemap.xml
 // It lists every public page, plus every blog post and news article.
-export const revalidate = 3600
+// Built fresh on every visit so new posts and edits show up straight away
+// (the old timed cache could get stuck on an old copy).
+export const dynamic = 'force-dynamic'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()

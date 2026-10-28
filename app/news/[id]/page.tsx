@@ -7,7 +7,9 @@ import { NEWS_FONT, formatNewsDate, absoluteImageUrl, type NewsItem } from '@/li
 
 // News articles are free to read for everyone (no sign-in),
 // and built on the server so Google can read them.
-export const revalidate = 600
+// Built fresh on every visit so new posts and edits show up straight away
+// (the old timed cache could get stuck on an old copy).
+export const dynamic = 'force-dynamic'
 
 async function getArticle(id: string): Promise<NewsItem | null> {
   try {

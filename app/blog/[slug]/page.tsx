@@ -5,8 +5,9 @@ import { createPublicClient } from '@/lib/supabase/public'
 import { SITE_URL, SITE_NAME } from '@/lib/site'
 
 // Built on the server so Google can read the whole article.
-// Refreshes at most every 10 minutes, so edits show up quickly.
-export const revalidate = 600
+// Built fresh on every visit so new posts and edits show up straight away
+// (the old timed cache could get stuck on an old copy).
+export const dynamic = 'force-dynamic'
 
 interface BlogPost {
   id: string

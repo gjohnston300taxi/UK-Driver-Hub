@@ -4,7 +4,9 @@ import { createPublicClient } from '@/lib/supabase/public'
 import { NEWS_CATEGORIES, NEWS_PAGE_SIZE, NEWS_FONT, formatNewsDate, type NewsItem } from '@/lib/news'
 
 // Built on the server so Google can read the headlines.
-export const revalidate = 600
+// Built fresh on every visit so new posts and edits show up straight away
+// (the old timed cache could get stuck on an old copy).
+export const dynamic = 'force-dynamic'
 
 type SearchParams = { page?: string; category?: string }
 

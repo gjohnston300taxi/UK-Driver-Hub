@@ -4,8 +4,9 @@ import SignedInRedirect from '@/components/SignedInRedirect'
 import { createPublicClient } from '@/lib/supabase/public'
 import { SITE_DESCRIPTION } from '@/lib/site'
 
-// Rebuild this page at most every 10 minutes so new blog posts appear.
-export const revalidate = 600
+// Built fresh on every visit so new posts and edits show up straight away
+// (the old timed cache could get stuck on an old copy).
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: { absolute: 'UK Driver Hub | Free Community for Taxi, Private Hire & Rideshare Drivers' },
