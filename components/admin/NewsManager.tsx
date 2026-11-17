@@ -59,7 +59,7 @@ export default function NewsManager() {
   const [message, setMessage] = useState('')
 
   const load = async () => {
-    const { data } = await supabase.from('news').select('*').order('created_at', { ascending: false })
+    const { data } = await supabase.from('news').select('*').order('added_at', { ascending: false }).order('created_at', { ascending: false })
     setNews((data || []) as NewsItem[])
     setLoading(false)
   }

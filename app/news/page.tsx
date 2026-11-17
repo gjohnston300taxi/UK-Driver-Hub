@@ -44,6 +44,7 @@ async function getNews(page: number, category: string | null) {
     let query = supabase
       .from('news')
       .select('*', { count: 'exact' })
+      .order('added_at', { ascending: false })
       .order('created_at', { ascending: false })
       .range(from, from + NEWS_PAGE_SIZE - 1)
     if (category) query = query.eq('category', category)
